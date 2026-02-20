@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autoencoders — Learning to Compress Without a Teacher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+/* PROGRESS BAR */
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+/* MASTHEAD */
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+/* TABLE OF CONTENTS */
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+/* PROSE */
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+
+/* CALLOUTS */
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+/* MATH BLOCK */
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+/* INTERACTIVE BLOCKS */
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* SLIDERS */
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+/* QUIZZES */
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+/* FOOTNOTES */
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+
+.signal-legend{display:flex;gap:1.2rem;margin-top:.6rem;font-family:'DM Sans',sans-serif;font-size:.72rem;color:var(--muted);}
+.signal-legend span::before{content:'';display:inline-block;width:12px;height:2px;margin-right:4px;vertical-align:middle;}
+.legend-original::before{background:var(--blue);}
+.legend-recon::before{background:var(--accent);}
+
+.pixel-grid{display:inline-grid;gap:1px;background:var(--border);border:1px solid var(--border);cursor:crosshair;}
+.pixel-grid .cell{width:28px;height:28px;background:white;transition:background .05s;}
+.pixel-grid .cell.on{background:var(--text);}
+.pixel-grid .cell.recon{background:var(--accent);}
+
+.grid-panel{display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+.grid-panel-item{text-align:center;}
+.grid-panel-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;}
+.latent-vals{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);margin-top:.4rem;max-width:240px;word-break:break-all;line-height:1.6;}
+
+.latent-explorer{display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+.latent-decoded{display:inline-grid;gap:1px;background:var(--border);border:1px solid var(--border);}
+.latent-decoded .ld-cell{width:24px;height:24px;}
+
+.pca-readout{font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--muted);line-height:1.6;margin-top:.8rem;min-height:2.5em;}
+
+@media(max-width:640px){
+  .pixel-grid .cell{width:22px;height:22px;}
+  .grid-panel{gap:1rem;}
+  .latent-decoded .ld-cell{width:20px;height:20px;}
+}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; All Explainers</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Deep Learning &middot; 01
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Deep Learning</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~18 min read</span>
+    </div>
+    <h1 class="post-title">Autoencoders &mdash; Learning to Compress Without a Teacher</h1>
+    <p class="post-subtitle">Force anything through a narrow passage. What survives is what matters.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">What Just Happened</a></li>
+        <li><a href="#s2">The Laziest Possible Solution</a></li>
+        <li><a href="#s3">The Only Rule</a></li>
+        <li><a href="#s4">The Three Phases</a></li>
+        <li><a href="#s5">The Map Inside the Bottleneck</a></li>
+        <li><a href="#s6">An Idea from 1901</a></li>
+        <li><a href="#s7">When Vanilla Isn't Enough</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- OPENING: Live Demo Before Any Explanation          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <p style="margin-top:3rem;font-style:italic;color:var(--muted);font-size:1.02rem;">Before you read a word of explanation &mdash; draw something on the left grid, then drag the slider down.</p>
+
+    <div class="interactive-block" id="opening-demo">
+      <div class="interactive-label">Interactive &mdash; Draw, Compress, Reconstruct</div>
+      <div class="grid-panel">
+        <div class="grid-panel-item">
+          <div class="grid-panel-label">Your Drawing (64 values)</div>
+          <div class="pixel-grid" id="draw-grid" style="grid-template-columns:repeat(8,28px);"></div>
+          <div style="margin-top:.5rem;">
+            <button class="btn" onclick="clearDrawing()">&#8634; Clear</button>
+          </div>
+        </div>
+        <div class="grid-panel-item">
+          <div class="grid-panel-label" id="latent-label">Latent Code (16 values)</div>
+          <div class="latent-vals" id="draw-latent"></div>
+        </div>
+        <div class="grid-panel-item">
+          <div class="grid-panel-label">Reconstruction</div>
+          <div class="pixel-grid" id="recon-grid" style="grid-template-columns:repeat(8,28px);pointer-events:none;"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Bottleneck size:</span>
+          <input type="range" id="draw-k" min="1" max="64" step="1" value="16" oninput="onDrawSlider(this.value)">
+          <span class="slider-val" id="draw-k-val">16</span>
+        </div>
+        <span id="draw-error" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">Reconstruction error: 0.000</span>
+      </div>
+    </div>
+
+    <p>Your 64 pixel values get squeezed to however many the slider allows, then rebuilt from only those compressed numbers. As the slider drops, your drawing degrades &mdash; but not randomly. The broad shape holds on longest. Fine detail goes first. Something is deciding what matters and what to throw away.</p>
+
+    <p>That decision-making is the entire story of this explainer.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I — Pure prose, no demo, no callout        -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Pieces</span>
+    <h2>What Just Happened</h2>
+
+    <p>The demo you just used has three parts. They have names, and the names matter, because every autoencoder ever built &mdash; from Rumelhart and Hinton's 1986 paper<sup title="Rumelhart, Hinton & Williams (1986) described autoencoders as a special case of backpropagation networks.">[1]</sup> to systems running in production today &mdash; has exactly these same three parts.</p>
+
+    <p>The <strong>encoder</strong> takes your input (64 pixel values) and compresses it to a smaller set of numbers. In the demo, the compression uses a fixed mathematical transform &mdash; the DCT, the same frequency decomposition behind JPEG.<sup title="The demo uses DCT basis functions for simplicity; a neural autoencoder learns its own basis.">[2]</sup> In a real autoencoder, the encoder is a neural network: learned weight matrices and nonlinear activations that discover their own compression scheme. The method changes. The role doesn't.</p>
+
+    <p>The <strong>bottleneck</strong> is the narrow middle &mdash; those few surviving numbers. They're called the <strong>latent representation</strong>, and their dimensionality is the single most important design choice you'll make. Each number in the latent code captures some pattern the compression decided was worth preserving. In the demo, the patterns are cosine waves at different frequencies. In a neural autoencoder, the patterns are whatever the network discovers for itself.</p>
+
+    <p>The <strong>decoder</strong> takes the latent code and tries to reconstruct the original. It's working with incomplete information &mdash; the bottleneck discarded things &mdash; so the reconstruction is approximate. How approximate depends on how narrow the bottleneck is. You felt this when you dragged the slider.</p>
+
+    <p>Encode, compress, decode. The rest of this explainer is about what happens when you make these three pieces out of neural network layers &mdash; because then the compression isn't designed by a human. It's <em>learned from data</em>.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II — Insight first, then demo, then quiz   -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Constraint</span>
+    <h2>The Laziest Possible Solution</h2>
+
+    <p>Here's a thought experiment. What if the bottleneck weren't narrow? What if you got 64 slots for your 64-pixel input &mdash; no compression at all?</p>
+
+    <p>The network would copy. Input pixel 1 &rarr; bottleneck slot 1 &rarr; output pixel 1. Perfect reconstruction, zero error, zero learning. The <strong>identity function</strong>: the laziest possible solution, and it scores perfectly. It's like getting 100% on an exam by smuggling in the answer key.</p>
+
+    <p>This is why the bottleneck must be smaller than the input. Not as convention &mdash; as necessity. With 16 slots for 64 values, the network can't copy. It must choose: which information survives? Which gets thrown away? That choice &mdash; refined over thousands of gradient updates, with no human guidance at all &mdash; <em>is</em> the learned representation.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The bottleneck doesn't just compress &mdash; it forces prioritization. With limited capacity, the network must discover which patterns carry the most reconstructive value. That discovery IS the representation. The constraint creates the intelligence.</p>
+    </div>
+
+    <p>You felt this with your drawing. Now feel it with a signal. The waveform below is built from 5 sine waves at different frequencies. The "bottleneck" keeps only the K strongest components. Drag the slider and notice <em>which</em> detail disappears first.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Bottleneck Squeeze</div>
+      <p class="interactive-setup">Drag the slider to reduce the number of frequency components kept. Watch which parts of the signal survive compression and which are shed first.</p>
+      <canvas id="signal-canvas" height="200"></canvas>
+      <div class="signal-legend">
+        <span class="legend-original">Original</span>
+        <span class="legend-recon">Reconstruction</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Bottleneck size:</span>
+          <input type="range" id="sig-k" min="1" max="5" step="1" value="5" oninput="onSigSlider(this.value)">
+          <span class="slider-val" id="sig-k-val">5</span>
+        </div>
+        <span id="sig-error" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">Error: 0.000</span>
+      </div>
+    </div>
+
+    <p>All 5 components: perfect reconstruction. Drop to 3: the high-frequency texture vanishes but the overall shape survives. Drop to 1: a single sine wave, a crude silhouette of the original. The bottleneck keeps the most important structure first and sheds detail from the top down. A neural autoencoder does the same thing &mdash; except it discovers the "components" on its own.</p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">If you give an autoencoder a bottleneck the same size as the input (784 neurons for a 784-pixel image), what happens?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','The network <em>can</em> still learn nonlinear features in theory, but without compression pressure there is no guarantee it extracts useful structure. The trivial identity mapping achieves perfect reconstruction while learning nothing about the data.')">The network can't learn &mdash; it needs compression pressure to function at all</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf1','Exactly. Without a narrow bottleneck, the easiest solution is the identity function &mdash; copy each input to the corresponding output, achieve zero loss, learn nothing about structure. The bottleneck IS the learning signal. No bottleneck, no representation.','')">The network can just copy the input through &mdash; no pressure to learn structure</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','Perfect reconstruction by copying is not learning. A lookup table also achieves zero error. The point of an autoencoder is to discover <em>compressed</em> representations, and that requires the bottleneck to be smaller than the input.')">Perfect reconstruction proves the autoencoder learned the data well</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III — Math + opinion, no demo, no quiz     -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Objective</span>
+    <h2>The Only Rule</h2>
+
+    <p>The autoencoder has no labels. No human annotator. No teacher signal of any kind. Its only objective is to make the output look like the input. The loss function that governs this is almost offensively simple:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Reconstruction Loss (Mean Squared Error)</span>
+      <div>L = (1/n) &middot; &Sigma;<sub>i</sub> (x<sub>i</sub> &minus; x&#770;<sub>i</sub>)&sup2;</div>
+      <span class="comment">&mdash; average squared difference between each input dimension x<sub>i</sub> and its reconstruction x&#770;<sub>i</sub></span>
+    </div>
+
+    <p>Mean squared error. The same loss you'd use for linear regression. Sum the squared differences between input and output, average them, minimize via gradient descent. Backpropagation computes how each weight in both encoder and decoder contributes to the error, and nudges every weight toward reducing it.<sup title="Binary cross-entropy is often preferred for [0,1]-normalized inputs, as it treats each pixel as a Bernoulli probability and avoids gradient saturation near 0 and 1.">[3]</sup></p>
+
+    <h3>A worked example</h3>
+
+    <p>Input: <span class="math">[0.8, 0.1, 0.9, 0.2]</span>. Reconstruction: <span class="math">[0.7, 0.2, 0.85, 0.3]</span>.</p>
+
+    <div class="math-block">
+      <span class="eq-label">Computing the loss step by step</span>
+      <div>L = (0.8 &minus; 0.7)&sup2; + (0.1 &minus; 0.2)&sup2; + (0.9 &minus; 0.85)&sup2; + (0.2 &minus; 0.3)&sup2;</div>
+      <div style="margin-top:.3rem">&nbsp; = 0.01 + 0.01 + 0.0025 + 0.01 = 0.0325</div>
+      <span class="comment">&mdash; dimensions 1, 2, and 4 contribute most; the gradient will apply the strongest corrections there</span>
+    </div>
+
+    <p>Here's what's worth sitting with: the loss function has no taste. It doesn't know what a "digit" is. It doesn't care whether the network learned "stroke thickness" or "pixel noise from image #47." It counts how far the numbers are from matching. That's all.</p>
+
+    <p>All the intelligence &mdash; the feature discovery, the structure learning, the representation &mdash; emerges from the interaction between this tasteless objective and the bottleneck constraint. The loss function doesn't reward good features. The bottleneck makes good features the only viable strategy for reducing the loss. Take away the bottleneck, and this same loss function produces the identity copy.</p>
+
+    <p>The constraint is the teacher. The loss function is just the exam.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>The loss doesn't tell the network <em>what</em> to learn &mdash; only <em>how wrong</em> it is. Structure emerges because structured features are the only way to reconstruct through a narrow passage. The network discovers features not because they're rewarded, but because they're <em>necessary</em>.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV — Short. Demo-first, minimal prose.     -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; Training</span>
+    <h2>The Three Phases</h2>
+
+    <p>Press play and watch.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Training Convergence</div>
+      <p class="interactive-setup">Watch the loss curve descend. Notice the three distinct phases &mdash; they reveal what the network is learning at each stage.</p>
+      <canvas id="train-canvas" height="200"></canvas>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn primary" id="train-btn" onclick="startTraining()">&#9654; Train</button>
+        <button class="btn" onclick="resetTraining()">&#8634; Reset</button>
+        <span id="train-readout" style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);margin-left:.5rem;"></span>
+      </div>
+    </div>
+
+    <p>Three things happen, every time, in this order.</p>
+
+    <p><strong>The plummet.</strong> The network discovers the <em>mean</em> of the data &mdash; the single best guess for all inputs. Reconstructions are blurry ghosts, but they beat random. This phase takes maybe 10% of training time but captures 60% of the loss reduction.</p>
+
+    <p><strong>The grind.</strong> The network learns <em>variance</em> &mdash; the principal axes along which data points differ. Reconstructions sharpen. Distinct inputs begin producing visibly distinct outputs. This is where feature learning actually happens, and it's slow.</p>
+
+    <p><strong>The plateau.</strong> The bottleneck is full. Every latent dimension has been assigned to a useful feature. No capacity remains for finer detail. The remaining error is the price of compression &mdash; and more bottleneck dimensions would lower it, but there's no escaping the tradeoff.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V — The deepest section. Long and patient. -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; The Latent Space</span>
+    <h2>The Map Inside the Bottleneck</h2>
+
+    <p>If you skim everything else in this explainer, read this section carefully. This is the point.</p>
+
+    <p>A trained autoencoder's bottleneck doesn't contain random compressed numbers. It contains a <em>map</em>.</p>
+
+    <p>Encode a thousand handwritten digits and plot their latent codes in 2D. You'll find structure that nobody put there. All the 3s cluster together. All the 7s cluster together. Similar-looking digits &mdash; 3s and 8s, 4s and 9s &mdash; land nearby. Different digits land far apart. The latent space has geometry, and that geometry mirrors the meaningful structure of the data, despite no one ever specifying what "meaningful" means.</p>
+
+    <p>But here's the truly remarkable thing. Take the latent code for a "3" and the latent code for a "7." Draw a straight line between them in latent space. Decode every point along that line. The images transition <em>smoothly</em>: the three's curves soften, straighten, and resolve into the angular strokes of a seven. No blurry average at the midpoint. No jarring jump. A continuous morph through plausible-looking digits that were never in the training data.</p>
+
+    <p>This is the <strong>manifold hypothesis</strong> in concrete form. Handwritten digits don't fill 784-dimensional pixel space &mdash; most random 784-dimensional vectors look like TV static. Real digits trace out a thin, curved surface (a <strong>manifold</strong>) defined by maybe 10 or 20 genuine degrees of freedom: which digit, the slant, the stroke thickness, the pen wobble. The autoencoder's latent space approximates that manifold's coordinate system.<sup title="The manifold hypothesis is foundational to deep learning; see Goodfellow, Bengio & Courville (2016), Chapter 5.">[4]</sup></p>
+
+    <p>Click anywhere in the plane below. The decoder generates an output from those two latent coordinates. Drag your mouse around and feel the smoothness of the mapping.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Latent Space Explorer</div>
+      <p class="interactive-setup">Click or drag in the 2D latent plane on the left. The right panel shows the decoded output &mdash; an 8&times;8 pattern generated from those two latent coordinates. Notice how nearby points produce similar patterns, and how each axis controls a different visual feature.</p>
+      <div class="latent-explorer">
+        <div>
+          <div class="grid-panel-label">Latent Space (z<sub>1</sub>, z<sub>2</sub>)</div>
+          <canvas id="latent-canvas" width="260" height="260" style="width:260px;cursor:crosshair;border:1px solid var(--border);background:white;"></canvas>
+          <div id="latent-coords" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);margin-top:.4rem;">z = (0.00, 0.00)</div>
+        </div>
+        <div>
+          <div class="grid-panel-label">Decoded Output</div>
+          <div class="latent-decoded" id="latent-decoded" style="grid-template-columns:repeat(8,24px);"></div>
+          <div id="latent-intensity" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.4rem;">total intensity: 0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <p>Notice how movement in the horizontal direction controls one visual feature and movement in the vertical direction controls another. This isn't coincidence. If two latent dimensions captured the same variation, one would be wasted &mdash; the reconstruction would be equally good with fewer dimensions. The bottleneck's pressure for efficiency forces the dimensions toward independence.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The latent space is not a bag of compressed numbers. It's a <strong>learned coordinate system for the data manifold</strong> &mdash; where position has meaning, distance reflects similarity, and movement corresponds to smooth variation in the data. This is why autoencoders matter: not for compression, but for the <em>representation</em> they discover.</p>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">You interpolate between the latent codes of two different images and decode the midpoint. The result looks like a plausible image, not a blurry average. What does this reveal about the latent space?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf2','Smooth interpolation means the latent space has geometric structure where distances are meaningful. The decoder learned a continuous mapping from latent coordinates to outputs &mdash; not just at training points, but across the entire space between them. This is the manifold hypothesis made concrete: the data lies on a smooth, low-dimensional surface, and the autoencoder learned its coordinate system.','')">The autoencoder learned a smooth manifold &mdash; nearby latent points map to semantically similar data</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','The midpoint of two latent codes is extremely unlikely to match any training example. The decoder is <em>generalizing</em> &mdash; it learned a continuous function across the whole latent space, not a lookup table.')">The autoencoder memorized the midpoint image from training data</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','Smooth interpolation works even between quite different inputs. It&rsquo;s a property of how the latent space is organized, not of how similar the two endpoints happen to be.')">This only works because the two images are very similar to begin with</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI — Short and punchy. Historical surprise. -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Connection</span>
+    <h2>An Idea from 1901</h2>
+
+    <p>Here's something that sounds unrelated but isn't.</p>
+
+    <p>Take an autoencoder and strip out all nonlinear activations. No ReLU, no sigmoid &mdash; just matrix multiplies. Train it with MSE loss. What you get is mathematically identical to <strong>Principal Component Analysis</strong>, a technique Karl Pearson published in 1901.<sup title="Baldi & Hornik (1989) proved that linear autoencoders converge to the PCA subspace.">[5]</sup></p>
+
+    <p>This isn't hand-waving. It's a theorem. Baldi and Hornik proved in 1989 that the optimal weights of a linear autoencoder span the PCA subspace. The encoder projects onto the top-<em>k</em> principal components. The decoder reconstructs from them. Same algorithm. Same result. Different notation.</p>
+
+    <p>So nonlinearity isn't a performance tweak. It's the entire game. PCA can only find <strong>flat subspaces</strong> &mdash; the best-fitting plane through your data. If the data lives on a curved surface (an arc, a spiral, the handwritten-digit manifold), PCA flattens it and destroys the structure. Nonlinear activations let the autoencoder learn <strong>curved manifolds</strong> &mdash; unfurling spirals, mapping intrinsic geometry into compact codes that preserve relationships PCA cannot.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; PCA vs. Nonlinear Autoencoder</div>
+      <p class="interactive-setup">40 points on a half-circle, colored by position along the arc. Toggle between PCA (projects to a flat line) and the nonlinear mapping (unfurls the arc). Watch what happens to the color ordering.</p>
+      <canvas id="pca-canvas" height="340"></canvas>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn primary" id="btn-pca" onclick="setPcaMode('pca')">PCA (Linear)</button>
+        <button class="btn" id="btn-ae" onclick="setPcaMode('ae')">Autoencoder (Nonlinear)</button>
+      </div>
+      <div class="pca-readout" id="pca-readout">PCA projects onto the axis of maximum variance (horizontal). Points at the tips of the arc, which are far apart along the curve, get mapped to opposite ends &mdash; but points near the top of the arc, which are far from both tips, collapse to the center. The arc-length ordering is lost.</div>
+    </div>
+
+    <p>The half-circle makes it visible. PCA projects onto the horizontal axis, losing the arc structure. Points with similar x-coordinates but different positions along the curve get crushed together. The nonlinear mapping unfurls the arc into a line: blue at one end, red at the other, smooth gradation between. Every point keeps its neighbors.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>Linear autoencoder = PCA (exact equivalence). Add nonlinearity &rarr; the autoencoder captures curved structure PCA destroys. This is why deep, nonlinear autoencoders replaced PCA as the default for dimensionality reduction on complex real-world data.</p>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A linear autoencoder with a <em>k</em>-dimensional bottleneck learns the same representation as PCA with <em>k</em> components. What does adding nonlinear activation functions change?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','Nonlinearity actually makes optimization harder &mdash; the loss landscape becomes non-convex with multiple local minima. The benefit is representational power, not training speed.')">It makes the autoencoder faster to train</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf3','PCA finds the best flat plane through the data. Nonlinear activations let the autoencoder learn curved surfaces &mdash; spirals, spheres, the manifold of handwritten digits. If your data doesn&rsquo;t lie on a flat subspace (and real data almost never does), a nonlinear autoencoder captures structure PCA cannot. The cost: optimization is harder and the solution is no longer unique.','')">It lets the autoencoder capture curved manifolds, not just flat subspaces</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','The bottleneck size stays <em>k</em> either way. Nonlinearity changes what <em>kind</em> of structure each dimension can represent, not how many dimensions there are.')">It lets the autoencoder use more components for the same bottleneck size</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII — Variants. Deliberately unequal.      -->
+    <!-- No demo. Subsections of different lengths.         -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; Extensions</span>
+    <h2>When Vanilla Isn't Enough</h2>
+
+    <p>The vanilla autoencoder has a clean idea at its core. It also has specific failure modes, and the three major variants each exist to fix exactly one of them.</p>
+
+    <h3>Denoising: the robustness fix</h3>
+
+    <p>A vanilla autoencoder can memorize surface noise &mdash; pixel-level quirks that happen to correlate across training images. The fix is blunt and effective: corrupt the input before encoding (add random noise, zero out pixels, apply blur), but train to reconstruct the <em>clean</em> original. The encoder can't rely on surface detail because it's been scrambled. It must learn features robust enough to survive corruption.<sup title="Vincent et al. (2008) showed that denoising autoencoders learn more useful representations than vanilla autoencoders.">[6]</sup> Simple idea. Works remarkably well.</p>
+
+    <h3>Sparsity: the interpretability fix</h3>
+
+    <p>In a vanilla autoencoder, every latent dimension activates for every input. The code is distributed &mdash; useful for compression, opaque for understanding. A sparsity penalty changes the game:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Sparse Autoencoder Loss</span>
+      <div>L = reconstruction error + &lambda; &middot; sparsity penalty</div>
+      <span class="comment">&mdash; &lambda; controls how strongly sparsity is enforced; typical penalties include L1 norm of activations or KL divergence from a target activation rate</span>
+    </div>
+
+    <p>The penalty forces each input to use only a few latent dimensions. The result: individual dimensions become <em>interpretable</em>. One fires for curves. Another for vertical strokes. A third for loops. You can read the latent code and understand <em>why</em> the network encoded something the way it did. The representation shifts from a distributed code to a parts-based decomposition.</p>
+
+    <h3>Variational: the generation fix</h3>
+
+    <p>This is the most interesting variant, and it deserves more space.</p>
+
+    <p>A trained vanilla autoencoder has a problem you might not expect: the latent space has no structure <em>between</em> training points. Encode your data and the codes form tight clusters. But the gaps between clusters? They decode to garbage. You can't sample a random point in latent space and expect anything coherent. The autoencoder compresses, but it doesn't <em>generate</em>.</p>
+
+    <p>The variational autoencoder (VAE) fixes this by changing what the encoder outputs. Instead of a single point per input, it outputs a <em>distribution</em> &mdash; a mean and variance. The network samples from that distribution before decoding. A KL divergence term in the loss pushes all these distributions toward a standard Gaussian:<sup title="Kingma & Welling (2014), 'Auto-Encoding Variational Bayes.' The reparameterization trick z = &mu; + &sigma;&middot;&epsilon; made backpropagation through stochastic sampling possible.">[7]</sup></p>
+
+    <div class="math-block">
+      <span class="eq-label">VAE Objective (Evidence Lower Bound)</span>
+      <div>L = reconstruction error + KL(q(z|x) || p(z))</div>
+      <span class="comment">&mdash; the KL term penalizes the encoder's distribution q(z|x) for deviating from the prior p(z), typically a standard Gaussian N(0,1)</span>
+    </div>
+
+    <p>Why does this work? The KL term forces the encoder's distributions to overlap. No more isolated clusters with dead space between them &mdash; the distributions spread out and blend together, covering the whole latent space. And since the decoder must reconstruct from samples drawn <em>anywhere</em> within these spread-out distributions, it learns a continuous mapping everywhere. You can now sample random codes from the prior and decode them into coherent, never-before-seen data.</p>
+
+    <p>The autoencoder becomes a <strong>generative model</strong>.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>Three variants, three fixes: robustness to noise (denoising), interpretability of features (sparse), smooth generation (variational). Same core architecture. Different regularizers. The idea is the same &mdash; the constraints change.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- CLOSING — The Return                               -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <p><a href="#opening-demo" style="color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.85rem;text-decoration:none;">&#8593; Scroll back up and draw on that grid again.</a></p>
+
+    <p>This time, you know what the numbers in the middle represent. They're not arbitrary compression artifacts &mdash; they're coordinates on a learned map. Each one captures an axis of variation that the bottleneck decided was worth preserving, discovered entirely from the pressure to reconstruct and the constraint of limited capacity.</p>
+
+    <p>The autoencoder's lasting contribution isn't compression &mdash; we have better compressors. It isn't image quality &mdash; we have better generative models. What it demonstrates is more fundamental: <strong>you don't need labels to learn structure</strong>. You don't need a human specifying features. You need a bottleneck and a reason to reconstruct. What survives the passage is structure. What doesn't survive wasn't structure to begin with.<sup title="Bengio, Courville & Vincent (2013) formalized representation learning as the field the autoencoder helped create.">[8]</sup></p>
+
+    <p>Every modern representation learning method &mdash; contrastive learning, masked language modeling, diffusion &mdash; descends from this principle. The mechanisms have changed. The idea hasn't: force a network through a constraint, give it a self-supervised objective, and the features emerge on their own. The autoencoder was the first clean proof that this works. It remains the clearest.</p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES                                          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote">
+        <span class="fn-num">[1]</span>
+        <span>Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). "Learning Internal Representations by Error Propagation." Autoencoders were described as a case where backpropagation learns to reproduce its input through a narrow hidden layer, discovering features without supervision. Hinton & Salakhutdinov (2006) later showed that deep autoencoders could outperform PCA on complex data, reviving interest in the approach.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[2]</span>
+        <span>The demo uses a 2D Discrete Cosine Transform &mdash; the same basis behind JPEG compression. The parallel is real: JPEG keeps the lowest-frequency DCT coefficients and discards the rest, exactly as the slider controls. A neural autoencoder learns its <em>own</em> basis from data rather than using a fixed one, which is why it can capture structure that DCT and JPEG cannot.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[3]</span>
+        <span>For inputs normalized to [0, 1], binary cross-entropy &minus;&Sigma;[x<sub>i</sub> log x&#770;<sub>i</sub> + (1&minus;x<sub>i</sub>) log(1&minus;x&#770;<sub>i</sub>)] is often preferred over MSE. It treats each pixel as a Bernoulli probability, which better matches the generative interpretation and avoids the gradient saturation that MSE causes near 0 and 1.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[4]</span>
+        <span>Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>, Chapter 5. The manifold hypothesis &mdash; that real-world data concentrates near low-dimensional manifolds in high-dimensional space &mdash; is the theoretical justification for why dimensionality reduction works at all. Autoencoders are among the most direct tests of this hypothesis.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[5]</span>
+        <span>Baldi, P. & Hornik, K. (1989). "Neural Networks and Principal Component Analysis: Learning from Examples Without Local Minima." <em>Neural Networks</em>. They proved that the globally optimal weights of a linear autoencoder span the same subspace as PCA's top-<em>k</em> eigenvectors. The proof uses the fact that PCA minimizes MSE reconstruction error among all rank-<em>k</em> linear projections.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[6]</span>
+        <span>Vincent, P., Larochelle, H., Bengio, Y., & Manzagol, P.-A. (2008). "Extracting and Composing Robust Features with Denoising Autoencoders." <em>ICML</em>. The key insight: corruption forces the encoder to learn the manifold's structure rather than surface-level pixel correlations, because it must reconstruct <em>clean</em> data from corrupted observations.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[7]</span>
+        <span>Kingma, D.P. & Welling, M. (2014). "Auto-Encoding Variational Bayes." <em>ICLR</em>. The reparameterization trick &mdash; writing z = &mu; + &sigma;&middot;&epsilon; with &epsilon; ~ N(0,1) &mdash; was the technical breakthrough. It made backpropagation through a stochastic sampling step possible by moving the randomness to an input variable rather than the computation graph.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[8]</span>
+        <span>Bengio, Y., Courville, A., & Vincent, P. (2013). "Representation Learning: A Review and New Perspectives." <em>IEEE TPAMI</em>. This paper formalized the goals of representation learning &mdash; the field the autoencoder helped create &mdash; and argued that unsupervised pre-training discovers features that transfer across tasks.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; All Explainers</a>
+    <span>The Explainers &mdash; First principles, no fluff</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// DEMO: Draw, Compress, Reconstruct
+// ═══════════════════════════════════════
+(function() {
+  const N = 8;
+  const drawGrid = document.getElementById('draw-grid');
+  const reconGrid = document.getElementById('recon-grid');
+  const latentEl = document.getElementById('draw-latent');
+  const latentLabel = document.getElementById('latent-label');
+  const errorEl = document.getElementById('draw-error');
+
+  let pixels = new Array(N * N).fill(0);
+  const drawCells = [];
+  const reconCells = [];
+
+  for (let i = 0; i < N * N; i++) {
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.addEventListener('mousedown', () => togglePixel(i));
+    d.addEventListener('mouseenter', e => { if (e.buttons === 1) togglePixel(i); });
+    d.addEventListener('touchstart', e => { e.preventDefault(); togglePixel(i); }, { passive: false });
+    drawGrid.appendChild(d);
+    drawCells.push(d);
+  }
+
+  for (let i = 0; i < N * N; i++) {
+    const d = document.createElement('div');
+    d.className = 'cell';
+    reconGrid.appendChild(d);
+    reconCells.push(d);
+  }
+
+  function togglePixel(i) {
+    pixels[i] = pixels[i] ? 0 : 1;
+    drawCells[i].classList.toggle('on', pixels[i] === 1);
+    tone(300 + pixels[i] * 200, 'triangle', 0.06, 0.03);
+    reconstruct();
+  }
+
+  function dctBasis(n, k, N) {
+    return Math.cos(Math.PI * (n + 0.5) * k / N);
+  }
+
+  function encode2D(px, K) {
+    const coeffs = [];
+    for (let u = 0; u < N; u++) {
+      for (let v = 0; v < N; v++) {
+        let sum = 0;
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            sum += px[r * N + c] * dctBasis(r, u, N) * dctBasis(c, v, N);
+          }
+        }
+        const cu = u === 0 ? 1 / Math.sqrt(2) : 1;
+        const cv = v === 0 ? 1 / Math.sqrt(2) : 1;
+        coeffs.push({ u, v, val: sum * 2 / N * cu * cv, freq: u + v });
+      }
+    }
+    coeffs.sort((a, b) => a.freq - b.freq || a.u - b.u || a.v - b.v);
+    return coeffs.slice(0, K);
+  }
+
+  function decode2D(coeffs) {
+    const result = new Array(N * N).fill(0);
+    coeffs.forEach(({ u, v, val }) => {
+      const cu = u === 0 ? 1 / Math.sqrt(2) : 1;
+      const cv = v === 0 ? 1 / Math.sqrt(2) : 1;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          result[r * N + c] += val * dctBasis(r, u, N) * dctBasis(c, v, N) * cu * cv * 2 / N;
+        }
+      }
+    });
+    return result;
+  }
+
+  function reconstruct() {
+    const K = parseInt(document.getElementById('draw-k').value);
+    latentLabel.textContent = `Latent Code (${K} values)`;
+
+    const coeffs = encode2D(pixels, K);
+    const recon = decode2D(coeffs);
+
+    latentEl.textContent = coeffs.map(c => c.val.toFixed(2)).join(', ');
+
+    let error = 0;
+    recon.forEach((v, i) => {
+      const clamped = Math.max(0, Math.min(1, v));
+      const intensity = Math.round(clamped * 255);
+      reconCells[i].style.background = `rgb(${255 - intensity}, ${255 - intensity * 0.7}, ${255 - intensity * 0.4})`;
+      error += (pixels[i] - clamped) * (pixels[i] - clamped);
+    });
+
+    errorEl.textContent = `Reconstruction error: ${(error / (N * N)).toFixed(4)}`;
+  }
+
+  window.onDrawSlider = function(v) {
+    v = parseInt(v);
+    document.getElementById('draw-k-val').textContent = v;
+    tone(150 + v * 6, 'triangle', 0.08, 0.04);
+    reconstruct();
+  };
+
+  window.clearDrawing = function() {
+    pixels.fill(0);
+    drawCells.forEach(d => d.classList.remove('on'));
+    reconstruct();
+    playClick();
+  };
+
+  reconstruct();
+})();
+
+// ═══════════════════════════════════════
+// DEMO: Signal Compression
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('signal-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 200;
+
+  const components = [
+    { a: 0.50, f: 1 },
+    { a: 0.30, f: 3 },
+    { a: 0.20, f: 5 },
+    { a: 0.15, f: 7 },
+    { a: 0.10, f: 11 }
+  ];
+
+  function signal(t, k) {
+    let v = 0;
+    for (let i = 0; i < k; i++) v += components[i].a * Math.sin(components[i].f * t);
+    return v;
+  }
+
+  function fullSignal(t) { return signal(t, 5); }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('sig-k').value));
+  }
+
+  function draw(k) {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+    const pad = { l: 8, r: 8, t: 16, b: 16 };
+    const gw = W - pad.l - pad.r, gh = H_PX - pad.t - pad.b;
+    const yMin = -1.3, yMax = 1.3;
+    const tMin = 0, tMax = 4 * Math.PI;
+    const py = y => pad.t + gh * (1 - (y - yMin) / (yMax - yMin));
+
+    ctx.beginPath();
+    ctx.moveTo(pad.l, py(0));
+    ctx.lineTo(pad.l + gw, py(0));
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    ctx.beginPath();
+    const steps = 500;
+    for (let i = 0; i <= steps; i++) {
+      const t = tMin + (tMax - tMin) * i / steps;
+      const x = pad.l + gw * i / steps;
+      const y = fullSignal(t);
+      i === 0 ? ctx.moveTo(x, py(y)) : ctx.lineTo(x, py(y));
+    }
+    ctx.strokeStyle = '#2a5db0';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (k < 5) {
+      ctx.beginPath();
+      let totalError = 0;
+      for (let i = 0; i <= steps; i++) {
+        const t = tMin + (tMax - tMin) * i / steps;
+        const x = pad.l + gw * i / steps;
+        const y = signal(t, k);
+        i === 0 ? ctx.moveTo(x, py(y)) : ctx.lineTo(x, py(y));
+        const err = fullSignal(t) - y;
+        totalError += err * err;
+      }
+      ctx.strokeStyle = '#c4622d';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const t = tMin + (tMax - tMin) * i / steps;
+        const x = pad.l + gw * i / steps;
+        i === 0 ? ctx.moveTo(x, py(fullSignal(t))) : ctx.lineTo(x, py(fullSignal(t)));
+      }
+      for (let i = steps; i >= 0; i--) {
+        const t = tMin + (tMax - tMin) * i / steps;
+        const x = pad.l + gw * i / steps;
+        ctx.lineTo(x, py(signal(t, k)));
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(196,98,45,0.08)';
+      ctx.fill();
+
+      document.getElementById('sig-error').textContent = 'Error: ' + (totalError / steps).toFixed(4);
+    } else {
+      document.getElementById('sig-error').textContent = 'Error: 0.0000 (perfect)';
+    }
+
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'right';
+    for (let i = 0; i < 5; i++) {
+      const kept = i < k;
+      ctx.fillStyle = kept ? '#2a5db0' : '#e2dfd8';
+      ctx.fillText(`f=${components[i].f} a=${components[i].a.toFixed(2)}`, W - pad.r - 4, pad.t + 14 + i * 14);
+    }
+  }
+
+  window.onSigSlider = function(v) {
+    v = parseInt(v);
+    document.getElementById('sig-k-val').textContent = v;
+    tone(200 + v * 100, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO: Training Convergence
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('train-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 200;
+
+  let points = [];
+  let running = false;
+  let maxStep = 100;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    drawCurve();
+  }
+
+  function drawCurve() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 48, r: 16, t: 20, b: 36 };
+    const gw = W - pad.l - pad.r, gh = H_PX - pad.t - pad.b;
+
+    if (points.length > 2) {
+      ctx.font = "9px 'DM Sans'";
+      ctx.textAlign = 'center';
+      const phases = [
+        { label: 'plummet', start: 0, end: 0.2, color: '#c4622d' },
+        { label: 'grind', start: 0.25, end: 0.6, color: '#2a5db0' },
+        { label: 'plateau', start: 0.7, end: 1.0, color: '#7a7870' },
+      ];
+      const progress = points.length / maxStep;
+      phases.forEach(p => {
+        if (progress > p.start) {
+          const cx = pad.l + gw * (p.start + p.end) / 2;
+          ctx.fillStyle = p.color + '66';
+          ctx.fillText(p.label, cx, pad.t - 6);
+        }
+      });
+    }
+
+    [0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = pad.t + t * gh;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(pad.l + gw, y);
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'right';
+    [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+      const y = pad.t + gh * (1 - v);
+      ctx.fillText(v.toFixed(2), pad.l - 6, y + 3);
+    });
+
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Sans'";
+    ctx.textAlign = 'center';
+    ctx.fillText('Epoch', pad.l + gw / 2, H_PX - 4);
+
+    ctx.save();
+    ctx.translate(12, pad.t + gh / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Sans'";
+    ctx.textAlign = 'center';
+    ctx.fillText('Loss', 0, 0);
+    ctx.restore();
+
+    if (points.length < 2) return;
+
+    const mn = 0, mx = 1;
+    const py = v => pad.t + gh * (1 - (v - mn) / (mx - mn));
+    const px = i => pad.l + gw * i / (maxStep - 1);
+
+    ctx.beginPath();
+    points.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+    ctx.lineTo(px(points.length - 1), pad.t + gh);
+    ctx.lineTo(pad.l, pad.t + gh);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(196,98,45,0.07)';
+    ctx.fill();
+
+    ctx.beginPath();
+    points.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+    ctx.strokeStyle = '#c4622d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const last = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(px(points.length - 1), py(last), 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    document.getElementById('train-readout').textContent =
+      `Loss: ${last.toFixed(4)} | Epoch: ${points.length}`;
+  }
+
+  window.startTraining = function() {
+    if (running) return;
+    running = true;
+    points = [];
+    document.getElementById('train-btn').textContent = 'Training...';
+    document.getElementById('train-btn').disabled = true;
+    let step = 0;
+
+    function tick() {
+      const base = 0.85 * Math.exp(-step / 15) + 0.06;
+      const noise = 0.02 * (Math.random() - 0.5);
+      const val = Math.max(0.04, base + noise);
+      points.push(val);
+      drawCurve();
+      const freq = 550 - val * 400;
+      tone(freq, 'sine', 0.04, 0.012);
+      step++;
+      if (step < maxStep) {
+        setTimeout(tick, 50);
+      } else {
+        running = false;
+        document.getElementById('train-btn').textContent = '\u25b6 Train';
+        document.getElementById('train-btn').disabled = false;
+        playOK();
+      }
+    }
+    tick();
+  };
+
+  window.resetTraining = function() {
+    if (running) return;
+    points = [];
+    drawCurve();
+    document.getElementById('train-readout').textContent = '';
+    playClick();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO: Latent Space Explorer
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('latent-canvas');
+  const ctx = c.getContext('2d');
+  const decodedEl = document.getElementById('latent-decoded');
+  const coordsEl = document.getElementById('latent-coords');
+  const intensityEl = document.getElementById('latent-intensity');
+
+  const N = 8;
+  const cells = [];
+  for (let i = 0; i < N * N; i++) {
+    const d = document.createElement('div');
+    d.className = 'ld-cell';
+    decodedEl.appendChild(d);
+    cells.push(d);
+  }
+
+  let curZ = [0, 0];
+
+  function decode(z1, z2) {
+    const grid = [];
+    const cx = (z1 + 2) / 4 * (N - 1);
+    const cy = (1 - (z2 + 2) / 4) * (N - 1);
+    const sigma = 1.4 + 0.3 * Math.abs(z1 * z2) * 0.2;
+
+    for (let r = 0; r < N; r++) {
+      for (let col = 0; col < N; col++) {
+        const dx = col - cx, dy = r - cy;
+        let v = Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
+        v += 0.15 * Math.exp(-Math.abs(dx) / 1.5) * Math.exp(-(dy * dy) / 3);
+        v += 0.15 * Math.exp(-Math.abs(dy) / 1.5) * Math.exp(-(dx * dx) / 3);
+        grid.push(Math.min(1, v));
+      }
+    }
+    return grid;
+  }
+
+  function renderDecoded(grid) {
+    let total = 0;
+    grid.forEach((v, i) => {
+      cells[i].style.background = v > 0.02 ?
+        `rgb(${Math.round(42 + (1-v)*194)}, ${Math.round(93 + (1-v)*141)}, ${Math.round(176 + (1-v)*52)})` :
+        '#f3f1ec';
+      total += v;
+    });
+    intensityEl.textContent = `total intensity: ${total.toFixed(2)}`;
+  }
+
+  function drawLatentPlane() {
+    const W = 260, H = 260;
+    ctx.clearRect(0, 0, W, H);
+
+    const res = 26;
+    const cellSize = W / res;
+    for (let r = 0; r < res; r++) {
+      for (let col = 0; col < res; col++) {
+        const z1 = -2 + 4 * col / (res - 1);
+        const z2 = 2 - 4 * r / (res - 1);
+        const grid = decode(z1, z2);
+        const total = grid.reduce((a, b) => a + b, 0) / (N * N);
+        ctx.fillStyle = `rgba(42,93,176,${total * 0.15})`;
+        ctx.fillRect(col * cellSize, r * cellSize, cellSize, cellSize);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i <= 4; i++) {
+      const p = i / 4 * W;
+      ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(W, p); ctx.stroke();
+    }
+
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'center';
+    [-2, -1, 0, 1, 2].forEach((v, i) => {
+      ctx.fillText(v, i / 4 * W, H - 3);
+    });
+    ctx.textAlign = 'right';
+    [-2, -1, 0, 1, 2].forEach((v, i) => {
+      ctx.fillText(v, 16, H - i / 4 * H + 3);
+    });
+
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "10px 'DM Sans'";
+    ctx.textAlign = 'center';
+    ctx.fillText('\u2081', W / 2, H - 3);
+    ctx.save();
+    ctx.translate(10, H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('\u2082', 0, 0);
+    ctx.restore();
+
+    const px = (curZ[0] + 2) / 4 * W;
+    const py = (1 - (curZ[1] + 2) / 4) * H;
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(196,98,45,0.2)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function updateFromPos(x, y) {
+    const W = 260, H = 260;
+    curZ[0] = Math.max(-2, Math.min(2, (x / W) * 4 - 2));
+    curZ[1] = Math.max(-2, Math.min(2, 2 - (y / H) * 4));
+    coordsEl.textContent = `z = (${curZ[0].toFixed(2)}, ${curZ[1].toFixed(2)})`;
+    const grid = decode(curZ[0], curZ[1]);
+    renderDecoded(grid);
+    drawLatentPlane();
+    tone(300 + (curZ[0] + 2) * 80 + (curZ[1] + 2) * 60, 'triangle', 0.06, 0.025);
+  }
+
+  let isDragging = false;
+  function getPos(e) {
+    const r = c.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  c.addEventListener('mousedown', e => { isDragging = true; const p = getPos(e); updateFromPos(p.x, p.y); });
+  c.addEventListener('mousemove', e => { if (isDragging) { const p = getPos(e); updateFromPos(p.x, p.y); } });
+  c.addEventListener('mouseup', () => { isDragging = false; });
+  c.addEventListener('mouseleave', () => { isDragging = false; });
+  c.addEventListener('touchstart', e => { isDragging = true; const r = c.getBoundingClientRect(); updateFromPos(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); }, { passive: true });
+  c.addEventListener('touchmove', e => { if (isDragging) { const r = c.getBoundingClientRect(); updateFromPos(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); } }, { passive: true });
+  c.addEventListener('touchend', () => { isDragging = false; });
+
+  const grid = decode(0, 0);
+  renderDecoded(grid);
+  drawLatentPlane();
+})();
+
+// ═══════════════════════════════════════
+// DEMO: PCA vs Autoencoder
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('pca-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 340;
+  let mode = 'pca';
+
+  const nPts = 40;
+  const pts = [];
+  for (let i = 0; i < nPts; i++) {
+    const theta = Math.PI * i / (nPts - 1);
+    pts.push({
+      x: Math.cos(theta),
+      y: Math.sin(theta),
+      theta: theta,
+      t: i / (nPts - 1)
+    });
+  }
+
+  function pointColor(t) {
+    const r = Math.round(42 + t * 154);
+    const g = Math.round(93 + Math.sin(t * Math.PI) * 80);
+    const b = Math.round(176 - t * 130);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const explanations = {
+    pca: 'PCA projects onto the axis of maximum variance (horizontal). Points at the tips of the arc, which are far apart along the curve, get mapped to opposite ends \u2014 but points near the top of the arc, which are far from both tips, collapse to the center. The arc-length ordering is lost.',
+    ae: 'The nonlinear autoencoder maps each point to its arc-length parameter \u03B8. The 1D code preserves the ordering along the curve: blue at one end, red at the other, with smooth color transitions between. The autoencoder "unfurls" the half-circle into a line.'
+  };
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const topH = 200;
+    const botY = topH + 40;
+    const botH = 60;
+    const pad = { l: 60, r: 40, t: 20, b: 20 };
+    const gw = W - pad.l - pad.r;
+    const gh = topH - pad.t - pad.b;
+
+    const xMin = -1.3, xMax = 1.3, yMin = -0.3, yMax = 1.5;
+    function px(x) { return pad.l + (x - xMin) / (xMax - xMin) * gw; }
+    function py(y) { return pad.t + (1 - (y - yMin) / (yMax - yMin)) * gh; }
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (let x = -1; x <= 1; x += 0.5) {
+      ctx.beginPath(); ctx.moveTo(px(x), pad.t); ctx.lineTo(px(x), pad.t + gh); ctx.stroke();
+    }
+    for (let y = 0; y <= 1; y += 0.5) {
+      ctx.beginPath(); ctx.moveTo(pad.l, py(y)); ctx.lineTo(pad.l + gw, py(y)); ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#c8c4bc';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, py(0)); ctx.lineTo(pad.l + gw, py(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(0), pad.t); ctx.lineTo(px(0), pad.t + gh); ctx.stroke();
+
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const theta = Math.PI * i / 100;
+      const x = Math.cos(theta), y = Math.sin(theta);
+      i === 0 ? ctx.moveTo(px(x), py(y)) : ctx.lineTo(px(x), py(y));
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(px(p.x), py(p.y), 5, 0, Math.PI * 2);
+      ctx.fillStyle = pointColor(p.t);
+      ctx.fill();
+      ctx.strokeStyle = pointColor(p.t);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "10px 'DM Sans'";
+    ctx.textAlign = 'left';
+    ctx.fillText('Original 2D data (half-circle)', pad.l, pad.t - 4);
+
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "10px 'DM Sans'";
+    ctx.textAlign = 'left';
+    ctx.fillText(mode === 'pca' ? '1D PCA projection' : '1D Nonlinear encoding (arc-length)', pad.l, botY - 8);
+
+    const lineY = botY + botH / 2;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, lineY);
+    ctx.lineTo(pad.l + gw, lineY);
+    ctx.strokeStyle = '#e2dfd8';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    pts.forEach(p => {
+      let projX;
+      if (mode === 'pca') {
+        projX = pad.l + (p.x - xMin) / (xMax - xMin) * gw;
+      } else {
+        projX = pad.l + p.t * gw;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(px(p.x), py(p.y));
+      ctx.lineTo(projX, lineY);
+      ctx.strokeStyle = pointColor(p.t) + '22';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(projX, lineY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = pointColor(p.t);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'center';
+    if (mode === 'pca') {
+      [-1, 0, 1].forEach(v => {
+        const x = pad.l + (v - xMin) / (xMax - xMin) * gw;
+        ctx.fillText(v, x, lineY + 20);
+      });
+    } else {
+      [0, 0.5, 1].forEach(v => {
+        const x = pad.l + v * gw;
+        ctx.fillText((v * Math.PI).toFixed(1), x, lineY + 20);
+      });
+      ctx.fillText('\u03B8 (arc-length)', pad.l + gw / 2, lineY + 34);
+    }
+
+    document.getElementById('pca-readout').textContent = explanations[mode];
+  }
+
+  window.setPcaMode = function(m) {
+    mode = m;
+    document.getElementById('btn-pca').className = m === 'pca' ? 'btn primary' : 'btn';
+    document.getElementById('btn-ae').className = m === 'ae' ? 'btn primary' : 'btn';
+    draw();
+    playClick();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>
