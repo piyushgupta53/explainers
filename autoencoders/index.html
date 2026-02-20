@@ -53,6 +53,8 @@ code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);p
 .math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
 .section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
 sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
 
 /* CALLOUTS */
 .callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
@@ -237,9 +239,9 @@ canvas{width:100%;display:block;border-radius:2px;}
     <span class="section-marker" id="s1">I. &mdash; The Pieces</span>
     <h2>What Just Happened</h2>
 
-    <p>The demo you just used has three parts. They have names, and the names matter, because every autoencoder ever built &mdash; from Rumelhart and Hinton's 1986 paper<sup title="Rumelhart, Hinton & Williams (1986) described autoencoders as a special case of backpropagation networks.">[1]</sup> to systems running in production today &mdash; has exactly these same three parts.</p>
+    <p>The demo you just used has three parts. They have names, and the names matter, because every autoencoder ever built &mdash; from Rumelhart and Hinton's 1986 paper<sup><a href="#fn-1" title="Rumelhart, Hinton & Williams (1986) described autoencoders as a special case of backpropagation networks.">[1]</a></sup> to systems running in production today &mdash; has exactly these same three parts.</p>
 
-    <p>The <strong>encoder</strong> takes your input (64 pixel values) and compresses it to a smaller set of numbers. In the demo, the compression uses a fixed mathematical transform &mdash; the DCT, the same frequency decomposition behind JPEG.<sup title="The demo uses DCT basis functions for simplicity; a neural autoencoder learns its own basis.">[2]</sup> In a real autoencoder, the encoder is a neural network: learned weight matrices and nonlinear activations that discover their own compression scheme. The method changes. The role doesn't.</p>
+    <p>The <strong>encoder</strong> takes your input (64 pixel values) and compresses it to a smaller set of numbers. In the demo, the compression uses a fixed mathematical transform &mdash; the DCT, the same frequency decomposition behind JPEG.<sup><a href="#fn-2" title="The demo uses DCT basis functions for simplicity; a neural autoencoder learns its own basis.">[2]</a></sup> In a real autoencoder, the encoder is a neural network: learned weight matrices and nonlinear activations that discover their own compression scheme. The method changes. The role doesn't.</p>
 
     <p>The <strong>bottleneck</strong> is the narrow middle &mdash; those few surviving numbers. They're called the <strong>latent representation</strong>, and their dimensionality is the single most important design choice you'll make. Each number in the latent code captures some pattern the compression decided was worth preserving. In the demo, the patterns are cosine waves at different frequencies. In a neural autoencoder, the patterns are whatever the network discovers for itself.</p>
 
@@ -314,7 +316,7 @@ canvas{width:100%;display:block;border-radius:2px;}
       <span class="comment">&mdash; average squared difference between each input dimension x<sub>i</sub> and its reconstruction x&#770;<sub>i</sub></span>
     </div>
 
-    <p>Mean squared error. The same loss you'd use for linear regression. Sum the squared differences between input and output, average them, minimize via gradient descent. Backpropagation computes how each weight in both encoder and decoder contributes to the error, and nudges every weight toward reducing it.<sup title="Binary cross-entropy is often preferred for [0,1]-normalized inputs, as it treats each pixel as a Bernoulli probability and avoids gradient saturation near 0 and 1.">[3]</sup></p>
+    <p>Mean squared error. The same loss you'd use for linear regression. Sum the squared differences between input and output, average them, minimize via gradient descent. Backpropagation computes how each weight in both encoder and decoder contributes to the error, and nudges every weight toward reducing it.<sup><a href="#fn-3" title="Binary cross-entropy is often preferred for [0,1]-normalized inputs, as it treats each pixel as a Bernoulli probability and avoids gradient saturation near 0 and 1.">[3]</a></sup></p>
 
     <h3>A worked example</h3>
 
@@ -383,7 +385,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>But here's the truly remarkable thing. Take the latent code for a "3" and the latent code for a "7." Draw a straight line between them in latent space. Decode every point along that line. The images transition <em>smoothly</em>: the three's curves soften, straighten, and resolve into the angular strokes of a seven. No blurry average at the midpoint. No jarring jump. A continuous morph through plausible-looking digits that were never in the training data.</p>
 
-    <p>This is the <strong>manifold hypothesis</strong> in concrete form. Handwritten digits don't fill 784-dimensional pixel space &mdash; most random 784-dimensional vectors look like TV static. Real digits trace out a thin, curved surface (a <strong>manifold</strong>) defined by maybe 10 or 20 genuine degrees of freedom: which digit, the slant, the stroke thickness, the pen wobble. The autoencoder's latent space approximates that manifold's coordinate system.<sup title="The manifold hypothesis is foundational to deep learning; see Goodfellow, Bengio & Courville (2016), Chapter 5.">[4]</sup></p>
+    <p>This is the <strong>manifold hypothesis</strong> in concrete form. Handwritten digits don't fill 784-dimensional pixel space &mdash; most random 784-dimensional vectors look like TV static. Real digits trace out a thin, curved surface (a <strong>manifold</strong>) defined by maybe 10 or 20 genuine degrees of freedom: which digit, the slant, the stroke thickness, the pen wobble. The autoencoder's latent space approximates that manifold's coordinate system.<sup><a href="#fn-4" title="The manifold hypothesis is foundational to deep learning; see Goodfellow, Bengio & Courville (2016), Chapter 5.">[4]</a></sup></p>
 
     <p>Click anywhere in the plane below. The decoder generates an output from those two latent coordinates. Drag your mouse around and feel the smoothness of the mapping.</p>
 
@@ -431,7 +433,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>Here's something that sounds unrelated but isn't.</p>
 
-    <p>Take an autoencoder and strip out all nonlinear activations. No ReLU, no sigmoid &mdash; just matrix multiplies. Train it with MSE loss. What you get is mathematically identical to <strong>Principal Component Analysis</strong>, a technique Karl Pearson published in 1901.<sup title="Baldi & Hornik (1989) proved that linear autoencoders converge to the PCA subspace.">[5]</sup></p>
+    <p>Take an autoencoder and strip out all nonlinear activations. No ReLU, no sigmoid &mdash; just matrix multiplies. Train it with MSE loss. What you get is mathematically identical to <strong>Principal Component Analysis</strong>, a technique Karl Pearson published in 1901.<sup><a href="#fn-5" title="Baldi & Hornik (1989) proved that linear autoencoders converge to the PCA subspace.">[5]</a></sup></p>
 
     <p>This isn't hand-waving. It's a theorem. Baldi and Hornik proved in 1989 that the optimal weights of a linear autoencoder span the PCA subspace. The encoder projects onto the top-<em>k</em> principal components. The decoder reconstructs from them. Same algorithm. Same result. Different notation.</p>
 
@@ -478,7 +480,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <h3>Denoising: the robustness fix</h3>
 
-    <p>A vanilla autoencoder can memorize surface noise &mdash; pixel-level quirks that happen to correlate across training images. The fix is blunt and effective: corrupt the input before encoding (add random noise, zero out pixels, apply blur), but train to reconstruct the <em>clean</em> original. The encoder can't rely on surface detail because it's been scrambled. It must learn features robust enough to survive corruption.<sup title="Vincent et al. (2008) showed that denoising autoencoders learn more useful representations than vanilla autoencoders.">[6]</sup> Simple idea. Works remarkably well.</p>
+    <p>A vanilla autoencoder can memorize surface noise &mdash; pixel-level quirks that happen to correlate across training images. The fix is blunt and effective: corrupt the input before encoding (add random noise, zero out pixels, apply blur), but train to reconstruct the <em>clean</em> original. The encoder can't rely on surface detail because it's been scrambled. It must learn features robust enough to survive corruption.<sup><a href="#fn-6" title="Vincent et al. (2008) showed that denoising autoencoders learn more useful representations than vanilla autoencoders.">[6]</a></sup> Simple idea. Works remarkably well.</p>
 
     <h3>Sparsity: the interpretability fix</h3>
 
@@ -498,7 +500,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>A trained vanilla autoencoder has a problem you might not expect: the latent space has no structure <em>between</em> training points. Encode your data and the codes form tight clusters. But the gaps between clusters? They decode to garbage. You can't sample a random point in latent space and expect anything coherent. The autoencoder compresses, but it doesn't <em>generate</em>.</p>
 
-    <p>The variational autoencoder (VAE) fixes this by changing what the encoder outputs. Instead of a single point per input, it outputs a <em>distribution</em> &mdash; a mean and variance. The network samples from that distribution before decoding. A KL divergence term in the loss pushes all these distributions toward a standard Gaussian:<sup title="Kingma & Welling (2014), 'Auto-Encoding Variational Bayes.' The reparameterization trick z = &mu; + &sigma;&middot;&epsilon; made backpropagation through stochastic sampling possible.">[7]</sup></p>
+    <p>The variational autoencoder (VAE) fixes this by changing what the encoder outputs. Instead of a single point per input, it outputs a <em>distribution</em> &mdash; a mean and variance. The network samples from that distribution before decoding. A KL divergence term in the loss pushes all these distributions toward a standard Gaussian:<sup><a href="#fn-7" title="Kingma & Welling (2014), 'Auto-Encoding Variational Bayes.' The reparameterization trick z = &mu; + &sigma;&middot;&epsilon; made backpropagation through stochastic sampling possible.">[7]</a></sup></p>
 
     <div class="math-block">
       <span class="eq-label">VAE Objective (Evidence Lower Bound)</span>
@@ -525,7 +527,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>This time, you know what the numbers in the middle represent. They're not arbitrary compression artifacts &mdash; they're coordinates on a learned map. Each one captures an axis of variation that the bottleneck decided was worth preserving, discovered entirely from the pressure to reconstruct and the constraint of limited capacity.</p>
 
-    <p>The autoencoder's lasting contribution isn't compression &mdash; we have better compressors. It isn't image quality &mdash; we have better generative models. What it demonstrates is more fundamental: <strong>you don't need labels to learn structure</strong>. You don't need a human specifying features. You need a bottleneck and a reason to reconstruct. What survives the passage is structure. What doesn't survive wasn't structure to begin with.<sup title="Bengio, Courville & Vincent (2013) formalized representation learning as the field the autoencoder helped create.">[8]</sup></p>
+    <p>The autoencoder's lasting contribution isn't compression &mdash; we have better compressors. It isn't image quality &mdash; we have better generative models. What it demonstrates is more fundamental: <strong>you don't need labels to learn structure</strong>. You don't need a human specifying features. You need a bottleneck and a reason to reconstruct. What survives the passage is structure. What doesn't survive wasn't structure to begin with.<sup><a href="#fn-8" title="Bengio, Courville & Vincent (2013) formalized representation learning as the field the autoencoder helped create.">[8]</a></sup></p>
 
     <p>Every modern representation learning method &mdash; contrastive learning, masked language modeling, diffusion &mdash; descends from this principle. The mechanisms have changed. The idea hasn't: force a network through a constraint, give it a self-supervised objective, and the features emerge on their own. The autoencoder was the first clean proof that this works. It remains the clearest.</p>
 
@@ -534,35 +536,35 @@ canvas{width:100%;display:block;border-radius:2px;}
     <!-- ═══════════════════════════════════════════════════ -->
     <div class="footnotes">
       <div class="footnotes-title">Notes</div>
-      <div class="footnote">
+      <div class="footnote" id="fn-1">
         <span class="fn-num">[1]</span>
         <span>Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). "Learning Internal Representations by Error Propagation." Autoencoders were described as a case where backpropagation learns to reproduce its input through a narrow hidden layer, discovering features without supervision. Hinton & Salakhutdinov (2006) later showed that deep autoencoders could outperform PCA on complex data, reviving interest in the approach.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-2">
         <span class="fn-num">[2]</span>
         <span>The demo uses a 2D Discrete Cosine Transform &mdash; the same basis behind JPEG compression. The parallel is real: JPEG keeps the lowest-frequency DCT coefficients and discards the rest, exactly as the slider controls. A neural autoencoder learns its <em>own</em> basis from data rather than using a fixed one, which is why it can capture structure that DCT and JPEG cannot.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-3">
         <span class="fn-num">[3]</span>
         <span>For inputs normalized to [0, 1], binary cross-entropy &minus;&Sigma;[x<sub>i</sub> log x&#770;<sub>i</sub> + (1&minus;x<sub>i</sub>) log(1&minus;x&#770;<sub>i</sub>)] is often preferred over MSE. It treats each pixel as a Bernoulli probability, which better matches the generative interpretation and avoids the gradient saturation that MSE causes near 0 and 1.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-4">
         <span class="fn-num">[4]</span>
         <span>Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>, Chapter 5. The manifold hypothesis &mdash; that real-world data concentrates near low-dimensional manifolds in high-dimensional space &mdash; is the theoretical justification for why dimensionality reduction works at all. Autoencoders are among the most direct tests of this hypothesis.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-5">
         <span class="fn-num">[5]</span>
         <span>Baldi, P. & Hornik, K. (1989). "Neural Networks and Principal Component Analysis: Learning from Examples Without Local Minima." <em>Neural Networks</em>. They proved that the globally optimal weights of a linear autoencoder span the same subspace as PCA's top-<em>k</em> eigenvectors. The proof uses the fact that PCA minimizes MSE reconstruction error among all rank-<em>k</em> linear projections.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-6">
         <span class="fn-num">[6]</span>
         <span>Vincent, P., Larochelle, H., Bengio, Y., & Manzagol, P.-A. (2008). "Extracting and Composing Robust Features with Denoising Autoencoders." <em>ICML</em>. The key insight: corruption forces the encoder to learn the manifold's structure rather than surface-level pixel correlations, because it must reconstruct <em>clean</em> data from corrupted observations.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-7">
         <span class="fn-num">[7]</span>
         <span>Kingma, D.P. & Welling, M. (2014). "Auto-Encoding Variational Bayes." <em>ICLR</em>. The reparameterization trick &mdash; writing z = &mu; + &sigma;&middot;&epsilon; with &epsilon; ~ N(0,1) &mdash; was the technical breakthrough. It made backpropagation through a stochastic sampling step possible by moving the randomness to an input variable rather than the computation graph.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-8">
         <span class="fn-num">[8]</span>
         <span>Bengio, Y., Courville, A., & Vincent, P. (2013). "Representation Learning: A Review and New Perspectives." <em>IEEE TPAMI</em>. This paper formalized the goals of representation learning &mdash; the field the autoencoder helped create &mdash; and argued that unsupervised pre-training discovers features that transfer across tasks.</span>
       </div>

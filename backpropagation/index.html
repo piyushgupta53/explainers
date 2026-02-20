@@ -48,6 +48,8 @@ code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);p
 .math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
 .section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
 sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
 
 .callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
 .callout.note{border-color:var(--blue);background:var(--blue-light);}
@@ -177,7 +179,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>But knowing the score doesn&rsquo;t tell you how to improve it. The network has 118,282 adjustable dials. Some are helping; some are hurting; most are barely relevant. The loss function collapses all of their contributions into one number and throws away the rest. It is as if a teacher graded a 50-page essay with a single red mark at the end: <em>C minus</em>. No marginal notes. No indication of which pages were strong, which were weak, which sentences dragged the grade down.</p>
 
-    <p>To fix the network, you need far more than the loss. You need 118,282 numbers &mdash; one per weight &mdash; each answering the question: <em>if I nudge this weight by a tiny amount, how does the loss change?</em> In calculus terms, you need the partial derivative of the loss with respect to each weight: <span class="math">&part;L/&part;w<sub>i</sub></span>. The collection of all these partial derivatives is the <strong>gradient</strong>.<sup title="The credit assignment problem was named by Minsky (1961) and is central to all learning systems.">[1]</sup></p>
+    <p>To fix the network, you need far more than the loss. You need 118,282 numbers &mdash; one per weight &mdash; each answering the question: <em>if I nudge this weight by a tiny amount, how does the loss change?</em> In calculus terms, you need the partial derivative of the loss with respect to each weight: <span class="math">&part;L/&part;w<sub>i</sub></span>. The collection of all these partial derivatives is the <strong>gradient</strong>.<sup><a href="#fn-1" title="The credit assignment problem was named by Minsky (1961) and is central to all learning systems.">[1]</a></sup></p>
 
     <p>If you had the gradient, learning would be mechanical. Each number tells you which direction to nudge its weight to reduce the loss, and by roughly how much. Nudge all 118,282 weights simultaneously, each in its indicated direction, and the network gets slightly less wrong. Repeat ten thousand times and it starts getting things right.</p>
 
@@ -274,7 +276,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <div class="callout note">
       <div class="callout-label">Note</div>
-      <p>This is why training a neural network uses far more memory than running inference on one. Inference discards intermediates as soon as they&rsquo;re consumed by the next layer. Training keeps every one of them alive until the backward pass is complete. For a network like GPT-3 with 96 transformer layers, this stored computation graph is the dominant memory cost during training &mdash; often exceeding the memory consumed by the weights themselves.<sup title="Gradient checkpointing trades computation for memory by discarding some intermediates and recomputing them during the backward pass. This is essential for training very deep models.">[2]</sup></p>
+      <p>This is why training a neural network uses far more memory than running inference on one. Inference discards intermediates as soon as they&rsquo;re consumed by the next layer. Training keeps every one of them alive until the backward pass is complete. For a network like GPT-3 with 96 transformer layers, this stored computation graph is the dominant memory cost during training &mdash; often exceeding the memory consumed by the weights themselves.<sup><a href="#fn-2" title="Gradient checkpointing trades computation for memory by discarding some intermediates and recomputing them during the backward pass. This is essential for training very deep models.">[2]</a></sup></p>
     </div>
 
     <hr class="section-sep">
@@ -306,7 +308,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <div class="callout insight">
       <div class="callout-label">Insight</div>
-      <p>The chain rule turns one hard derivative into a product of easy ones. No individual operation in a neural network is mathematically difficult &mdash; multiply, add, sigmoid, ReLU, softmax, squared error all have derivatives you can write on a napkin. Backpropagation is the chain rule applied systematically to the computation graph, computing all of these local products in a single backward sweep. That&rsquo;s it. That&rsquo;s the whole algorithm.<sup title="Backpropagation is precisely reverse-mode automatic differentiation (AD), a technique described by Linnainmaa in 1970 &mdash; sixteen years before it was popularized for neural networks.">[3]</sup></p>
+      <p>The chain rule turns one hard derivative into a product of easy ones. No individual operation in a neural network is mathematically difficult &mdash; multiply, add, sigmoid, ReLU, softmax, squared error all have derivatives you can write on a napkin. Backpropagation is the chain rule applied systematically to the computation graph, computing all of these local products in a single backward sweep. That&rsquo;s it. That&rsquo;s the whole algorithm.<sup><a href="#fn-3" title="Backpropagation is precisely reverse-mode automatic differentiation (AD), a technique described by Linnainmaa in 1970 &mdash; sixteen years before it was popularized for neural networks.">[3]</a></sup></p>
     </div>
 
     <hr class="section-sep">
@@ -377,7 +379,7 @@ canvas{width:100%;display:block;border-radius:2px;}
     <span class="section-marker" id="s6">VI. &mdash; The Update</span>
     <h2>What Backprop Doesn&rsquo;t Do</h2>
 
-    <p>Most tutorials conflate backpropagation with training. They shouldn&rsquo;t. Backpropagation computes gradients. It does not change any weights. It does not decide how far to move. It does not know what a learning rate is. It answers one question &mdash; <em>which direction should each weight move?</em> &mdash; and stops.<sup title="Backpropagation computes gradients; gradient descent (or any optimizer: Adam, RMSprop, SGD with momentum) uses them. The two are logically independent.">[4]</sup></p>
+    <p>Most tutorials conflate backpropagation with training. They shouldn&rsquo;t. Backpropagation computes gradients. It does not change any weights. It does not decide how far to move. It does not know what a learning rate is. It answers one question &mdash; <em>which direction should each weight move?</em> &mdash; and stops.<sup><a href="#fn-4" title="Backpropagation computes gradients; gradient descent (or any optimizer: Adam, RMSprop, SGD with momentum) uses them. The two are logically independent.">[4]</a></sup></p>
 
     <p>The step that actually changes the weights is <strong>gradient descent</strong>, a separate algorithm that takes the gradients backprop computed and uses them to update each weight:</p>
 
@@ -431,7 +433,7 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p>Backpropagation multiplies local derivatives along the chain. In a network with 50 layers, the gradient at the first layer is a product of 50 numbers. If each of those numbers is slightly less than 1, the product shrinks <em>exponentially</em> toward zero. If each is slightly greater than 1, the product explodes toward infinity.</p>
 
-    <p>This is the <strong>vanishing gradient problem</strong>, and for over two decades it was the reason deep networks couldn&rsquo;t train. The algorithm was correct. The math was correct. But the signal simply decayed before it reached the early layers. Networks could be 3 or 4 layers deep. Beyond that, the first layers received effectively zero gradient and learned nothing. Deep learning was deep in theory and shallow in practice.<sup title="Hochreiter (1991) and Bengio, Simard & Frasconi (1994) formally analyzed vanishing gradients, proving that gradient magnitude decreases exponentially with depth for activations whose derivative is bounded below 1.">[5]</sup></p>
+    <p>This is the <strong>vanishing gradient problem</strong>, and for over two decades it was the reason deep networks couldn&rsquo;t train. The algorithm was correct. The math was correct. But the signal simply decayed before it reached the early layers. Networks could be 3 or 4 layers deep. Beyond that, the first layers received effectively zero gradient and learned nothing. Deep learning was deep in theory and shallow in practice.<sup><a href="#fn-5" title="Hochreiter (1991) and Bengio, Simard & Frasconi (1994) formally analyzed vanishing gradients, proving that gradient magnitude decreases exponentially with depth for activations whose derivative is bounded below 1.">[5]</a></sup></p>
 
     <h3>The sigmoid is the culprit</h3>
 
@@ -466,9 +468,9 @@ canvas{width:100%;display:block;border-radius:2px;}
 
     <p><strong>ReLU</strong> &mdash; <span class="math">f(x) = max(0, x)</span> &mdash; has a derivative of exactly 1 for positive inputs and 0 for negative inputs. No attenuation. Gradients flow through ReLU layers at full strength. Toggle to ReLU in the demo above and crank the depth to 14: the input gradient stays at 1.0. That flat line is the difference between a network that can train and one that can&rsquo;t.</p>
 
-    <p><strong>Residual connections</strong> (skip connections) offer an even more direct fix. By adding the input of a block to its output &mdash; <span class="math">y = f(x) + x</span> &mdash; the gradient always has a shortcut path. The derivative of <span class="math">y</span> with respect to <span class="math">x</span> is <span class="math">&part;f/&part;x + 1</span>. That <span class="math">+ 1</span> guarantees the gradient can never vanish entirely, regardless of depth. This single architectural idea is why ResNets train with over 1,000 layers.<sup title="He et al. (2016), &ldquo;Deep Residual Learning for Image Recognition.&rdquo; Skip connections provide a gradient highway &mdash; a path through which gradients flow without attenuation, regardless of the number of intervening layers.">[6]</sup></p>
+    <p><strong>Residual connections</strong> (skip connections) offer an even more direct fix. By adding the input of a block to its output &mdash; <span class="math">y = f(x) + x</span> &mdash; the gradient always has a shortcut path. The derivative of <span class="math">y</span> with respect to <span class="math">x</span> is <span class="math">&part;f/&part;x + 1</span>. That <span class="math">+ 1</span> guarantees the gradient can never vanish entirely, regardless of depth. This single architectural idea is why ResNets train with over 1,000 layers.<sup><a href="#fn-6" title="He et al. (2016), &ldquo;Deep Residual Learning for Image Recognition.&rdquo; Skip connections provide a gradient highway &mdash; a path through which gradients flow without attenuation, regardless of the number of intervening layers.">[6]</a></sup></p>
 
-    <p>Careful <strong>weight initialization</strong> also matters. Xavier initialization (for sigmoid/tanh) and He initialization (for ReLU) set the initial variance of each layer&rsquo;s weights so that both activations and gradients maintain stable magnitude through the network at the start of training. They don&rsquo;t prevent vanishing gradients during training, but they ensure the network starts from a reasonable place.<sup title="Glorot & Bengio (2010) derived Xavier initialization; He et al. (2015) derived He initialization. Both compute the initial weight variance that preserves signal magnitude through forward and backward passes.">[7]</sup></p>
+    <p>Careful <strong>weight initialization</strong> also matters. Xavier initialization (for sigmoid/tanh) and He initialization (for ReLU) set the initial variance of each layer&rsquo;s weights so that both activations and gradients maintain stable magnitude through the network at the start of training. They don&rsquo;t prevent vanishing gradients during training, but they ensure the network starts from a reasonable place.<sup><a href="#fn-7" title="Glorot & Bengio (2010) derived Xavier initialization; He et al. (2015) derived He initialization. Both compute the initial weight variance that preserves signal magnitude through forward and backward passes.">[7]</a></sup></p>
 
     <div class="quiz-block">
       <div class="quiz-q">You have a 10-layer network with sigmoid activations. The early layers are learning nothing because their gradients are near zero. You switch all activations to ReLU. Why does this fix the problem?</div>
@@ -486,7 +488,7 @@ canvas{width:100%;display:block;border-radius:2px;}
     <!-- CLOSING -->
     <!-- ═══════════════════════════════════════════════════ -->
 
-    <p>Backpropagation was described independently multiple times over three decades &mdash; by Linnainmaa as reverse-mode automatic differentiation in 1970, by Werbos in the context of neural networks in 1974, and most influentially by Rumelhart, Hinton, and Williams in a 1986 <em>Nature</em> paper that demonstrated hidden layers could learn useful internal representations.<sup title="Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). &ldquo;Learning representations by back-propagating errors.&rdquo; Nature 323, 533&ndash;536.">[8]</sup> Before that paper, the dominant view was that multi-layer networks were untrainable. After it, the question was only how deep you could go.</p>
+    <p>Backpropagation was described independently multiple times over three decades &mdash; by Linnainmaa as reverse-mode automatic differentiation in 1970, by Werbos in the context of neural networks in 1974, and most influentially by Rumelhart, Hinton, and Williams in a 1986 <em>Nature</em> paper that demonstrated hidden layers could learn useful internal representations.<sup><a href="#fn-8" title="Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). &ldquo;Learning representations by back-propagating errors.&rdquo; Nature 323, 533&ndash;536.">[8]</a></sup> Before that paper, the dominant view was that multi-layer networks were untrainable. After it, the question was only how deep you could go.</p>
 
     <p>Every neural network trained since &mdash; every image classifier, every language model, every protein structure predictor, every game-playing agent &mdash; learned through exactly this computation. The architectures transformed beyond recognition. The datasets grew by six orders of magnitude. The hardware evolved from single CPUs to datacenters of interconnected GPUs and custom TPUs. But the algorithm that tells each weight how to change is the same: run the input forward, compute the loss, propagate the gradient backward through the chain rule, update each weight by a small step in the gradient direction.</p>
 
@@ -497,35 +499,35 @@ canvas{width:100%;display:block;border-radius:2px;}
     <!-- ═══════════════════════════════════════════════════ -->
     <div class="footnotes">
       <div class="footnotes-title">Notes</div>
-      <div class="footnote">
+      <div class="footnote" id="fn-1">
         <span class="fn-num">[1]</span>
         <span>Minsky, M. (1961). &ldquo;Steps toward Artificial Intelligence.&rdquo; <em>Proceedings of the IRE</em>. The credit assignment problem &mdash; determining which actions in a sequence contributed to a later outcome &mdash; was identified as a central challenge for learning systems decades before practical solutions existed.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-2">
         <span class="fn-num">[2]</span>
         <span>Gradient checkpointing, introduced by Chen et al. (2016), trades computation for memory by discarding some intermediate activations during the forward pass and recomputing them during the backward pass. This allows training models that would otherwise exceed GPU memory, at the cost of roughly one additional forward pass.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-3">
         <span class="fn-num">[3]</span>
         <span>Linnainmaa, S. (1970). &ldquo;The representation of the cumulative rounding error of an algorithm as a Taylor expansion of the local rounding errors.&rdquo; Master&rsquo;s thesis, University of Helsinki. This work described reverse-mode automatic differentiation &mdash; the general technique that backpropagation instantiates for neural networks. The connection between AD and neural network training was not recognized for another 16 years.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-4">
         <span class="fn-num">[4]</span>
         <span>Modern optimizers go far beyond vanilla gradient descent. Adam (Kingma & Ba, 2015) maintains per-parameter running averages of the first and second moments of the gradient, adapting the effective learning rate for each weight individually. But all of them still depend on backpropagation to compute the raw gradients they then process.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-5">
         <span class="fn-num">[5]</span>
         <span>Bengio, Y., Simard, P., & Frasconi, P. (1994). &ldquo;Learning Long-Term Dependencies with Gradient Descent is Difficult.&rdquo; <em>IEEE Transactions on Neural Networks</em>. Proved rigorously that gradient magnitude decreases exponentially with depth for activation functions with bounded derivatives, explaining why early attempts at deep networks failed.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-6">
         <span class="fn-num">[6]</span>
         <span>He, K., Zhang, X., Ren, S., & Sun, J. (2016). &ldquo;Deep Residual Learning for Image Recognition.&rdquo; <em>CVPR</em>. Won the ImageNet competition with a 152-layer network. The authors demonstrated networks up to 1,202 layers deep, though beyond ~150 layers the gains plateaued due to overfitting rather than optimization difficulty.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-7">
         <span class="fn-num">[7]</span>
         <span>Glorot, X. & Bengio, Y. (2010). &ldquo;Understanding the difficulty of training deep feedforward neural networks.&rdquo; <em>AISTATS</em>. Xavier initialization sets weight variance to 1/<em>n</em> (where <em>n</em> is the fan-in) to preserve signal variance. He initialization doubles this for ReLU networks, accounting for the fact that ReLU zeros out half of its inputs.</span>
       </div>
-      <div class="footnote">
+      <div class="footnote" id="fn-8">
         <span class="fn-num">[8]</span>
         <span>Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). &ldquo;Learning representations by back-propagating errors.&rdquo; <em>Nature</em> 323, 533&ndash;536. The paper that catalyzed the connectionist revolution. Its key contribution was not the algorithm itself (which was known) but the demonstration that multi-layer networks could learn meaningful internal representations &mdash; settling a debate that had stalled the field since Minsky and Papert&rsquo;s 1969 <em>Perceptrons</em>.</span>
       </div>
