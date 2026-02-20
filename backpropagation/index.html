@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backpropagation — The Chain Rule That Trains Every Neural Network</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+
+.cost-bars{display:flex;gap:2rem;align-items:flex-end;justify-content:center;height:180px;margin:1rem 0;}
+.cost-bar-group{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+.cost-bar{width:80px;background:var(--blue);border-radius:2px 2px 0 0;transition:height .4s ease;min-height:2px;}
+.cost-bar.bp{background:var(--accent);}
+.cost-bar-val{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--text);}
+.cost-bar-label{font-family:'DM Sans',sans-serif;font-size:.72rem;color:var(--muted);text-align:center;max-width:100px;}
+
+.graph-desc{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:3em;}
+
+.lr-stats{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.8;}
+
+.vg-legend{display:flex;gap:1rem;margin-top:.6rem;font-family:'DM Sans',sans-serif;font-size:.72rem;color:var(--muted);flex-wrap:wrap;}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Deep Learning &middot; 02
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Deep Learning</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~22 min read</span>
+    </div>
+    <h1 class="post-title">Backpropagation &mdash; The Chain Rule That Trains Every Neural Network</h1>
+    <p class="post-subtitle">You can define a neural network with millions of weights and measure how wrong it is. But which weight caused the error?</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">The Credit Assignment Problem</a></li>
+        <li><a href="#s2">The Expensive Way</a></li>
+        <li><a href="#s3">The Forward Pass</a></li>
+        <li><a href="#s4">The Chain Rule</a></li>
+        <li><a href="#s5">The Backward Pass</a></li>
+        <li><a href="#s6">From Gradients to Learning</a></li>
+        <li><a href="#s7">When Gradients Break</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Problem</span>
+    <h2>The Credit Assignment Problem</h2>
+
+    <p>A neural network is a pipeline of simple operations: multiply inputs by weights, add biases, apply an activation function, repeat. The forward pass &mdash; running an input through this pipeline to produce an output &mdash; is easy. Evaluating how wrong the output is compared to the target is also easy: compute the loss, get a single number. A loss of 2.4 means the network is wrong by this much.</p>
+
+    <p>But a single number tells you almost nothing about what to fix. A network classifying images might have 25 million weights. The loss says "you're wrong." It does not say <em>which</em> of the 25 million weights made you wrong, or by how much, or in which direction each should change.</p>
+
+    <p>This is the <strong>credit assignment problem</strong>: given a single scalar loss, determine the contribution of every weight in the network to that loss. More precisely, compute the <strong>gradient</strong> &mdash; the partial derivative of the loss with respect to each weight: <span class="math">&part;L/&part;w<sub>i</sub></span> for every weight <em>w<sub>i</sub></em> in the network.</p>
+
+    <p>If you had these gradients, training would be straightforward. Each gradient tells you: "if you increase this weight by a tiny amount, the loss changes by this much." Nudge every weight in the direction that decreases the loss. Repeat. The network learns.</p>
+
+    <p>The question is how to compute those gradients. For 25 million weights, you need 25 million numbers. Computing them efficiently is the entire challenge, and it's what backpropagation solves.<sup title="The credit assignment problem was named by Minsky (1961) and is central to all learning systems, not just neural networks.">[1]</sup></p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Naive Approach</span>
+    <h2>The Expensive Way</h2>
+
+    <p>There's a brute-force method. To estimate <span class="math">&part;L/&part;w<sub>i</sub></span>, nudge weight <em>w<sub>i</sub></em> by a tiny amount &epsilon;, run the entire forward pass again, measure the new loss, and compute the finite difference:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Numerical Gradient (Finite Differences)</span>
+      <div>&part;L/&part;w<sub>i</sub> &approx; (L(w<sub>i</sub> + &epsilon;) &minus; L(w<sub>i</sub>)) / &epsilon;</div>
+      <span class="comment">&mdash; perturb one weight, run the full forward pass, measure the change in loss</span>
+    </div>
+
+    <p>This works. The estimate is correct in the limit as &epsilon; &rarr; 0. But consider the cost: you need one full forward pass to get the baseline loss, then <strong>one additional forward pass for every single weight</strong>. For a network with <em>N</em> weights, that's <em>N + 1</em> forward passes to compute all <em>N</em> gradients.</p>
+
+    <p>For 25 million weights, that's 25 million forward passes &mdash; <em>per training step</em>. A single forward pass on a large model might take milliseconds on a GPU. Twenty-five million of them would take hours. You'd need to do this for every batch of training data, for hundreds of thousands of batches. It is impossibly slow.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The cost of numerical gradients grows linearly with the number of weights. The cost of backpropagation does not. Backpropagation computes <strong>all</strong> gradients in roughly the cost of <strong>two</strong> forward passes &mdash; one forward, one backward &mdash; regardless of how many weights the network has. That is the miracle.</p>
+    </div>
+
+    <p>Drag the slider below. Watch how the cost of perturbation grows while backpropagation stays flat.</p>
+
+    <!-- DEMO 1: Cost Comparison -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Cost Gap</div>
+      <p class="interactive-setup">Adjust the number of weights in the network. The left bar shows forward passes needed for numerical gradients (N+1). The right bar shows backpropagation's cost (always 2). Notice how quickly the gap becomes absurd.</p>
+      <div class="cost-bars" id="cost-bars">
+        <div class="cost-bar-group">
+          <div class="cost-bar-val" id="perturb-val">21</div>
+          <div class="cost-bar" id="perturb-bar" style="height:160px;"></div>
+          <div class="cost-bar-label">Perturbation<br>(N+1 passes)</div>
+        </div>
+        <div class="cost-bar-group">
+          <div class="cost-bar-val" id="bp-val">2</div>
+          <div class="cost-bar bp" id="bp-bar" style="height:2px;"></div>
+          <div class="cost-bar-label">Backprop<br>(2 passes)</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Weights (N):</span>
+          <input type="range" id="cost-n" min="1" max="1000" step="1" value="20" oninput="onCostSlider(this.value)">
+          <span class="slider-val" id="cost-n-val">20</span>
+        </div>
+        <span id="cost-ratio" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);">Speedup: 10.5&times;</span>
+      </div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A network has 1,000 weights. How many forward passes does the perturbation method need to compute all 1,000 gradients?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','You need one forward pass to get the baseline loss, plus one forward pass per weight to measure the effect of perturbing it. That&rsquo;s 1,001, not 1,000.')">1,000 &mdash; one per weight</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf1','1,001 is correct: one baseline forward pass to compute L(w), then one additional pass for each of the 1,000 weights to compute L(w + &epsilon;e&#x1D62;). Backpropagation, by contrast, computes all 1,000 gradients in just 2 passes. The speedup is 500&times;, and it grows linearly with N.','')">1,001 &mdash; one baseline plus one per weight</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','Two passes is what backpropagation needs (one forward, one backward). Perturbation must evaluate each weight separately, requiring far more passes.')">2 &mdash; one forward, one backward</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; Computing the Output</span>
+    <h2>The Forward Pass</h2>
+
+    <p>Before computing gradients, you need the loss. That means running the input through the network to produce an output. This is the <strong>forward pass</strong>, and it's the easy part &mdash; with one crucial detail that makes the backward pass possible.</p>
+
+    <p>Consider a simple computation. Input <span class="math">x = 1.5</span>, weight <span class="math">w = 0.8</span>, bias <span class="math">b = &minus;0.2</span>, target <span class="math">t = 0.8</span>. The network computes:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Forward Pass Computation</span>
+      <div>z<sub>1</sub> = x &middot; w = 1.5 &times; 0.8 = 1.20</div>
+      <div>z<sub>2</sub> = z<sub>1</sub> + b = 1.20 + (&minus;0.2) = 1.00</div>
+      <div>a = &sigma;(z<sub>2</sub>) = 1/(1 + e<sup>&minus;1.0</sup>) = 0.731</div>
+      <div>L = (a &minus; t)&sup2; = (0.731 &minus; 0.8)&sup2; = 0.00475</div>
+      <span class="comment">&mdash; four operations, left to right: multiply, add, sigmoid, squared error</span>
+    </div>
+
+    <p>Four operations, each depending on the previous one's output. The loss is 0.00475 &mdash; not terrible, but not zero. We want to adjust <em>w</em> and <em>b</em> to reduce it.</p>
+
+    <p>Here is the detail that matters: the forward pass <strong>saves every intermediate value</strong>. Not just the final loss, but <span class="math">z<sub>1</sub> = 1.20</span>, <span class="math">z<sub>2</sub> = 1.00</span>, <span class="math">a = 0.731</span>. These intermediate results are stored in memory. They seem like throwaways &mdash; scaffolding that produced the output and could be discarded. But they are exactly what the backward pass needs.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>This is why training uses more memory than inference. Inference only needs the final output and can discard intermediates. Training must keep them all, because every intermediate value will be needed during the backward pass to compute local derivatives. For deep networks, this stored computation graph is the dominant memory cost.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Mathematical Key</span>
+    <h2>The Chain Rule</h2>
+
+    <p>A neural network is a composition of functions. The output is <span class="math">f(g(h(x)))</span> &mdash; operations nested inside operations. Calculus has a rule for differentiating compositions. It's called the <strong>chain rule</strong>, and it's the only piece of mathematics backpropagation needs.</p>
+
+    <div class="math-block">
+      <span class="eq-label">The Chain Rule</span>
+      <div>If y = f(g(x)), then dy/dx = df/dg &middot; dg/dx</div>
+      <span class="comment">&mdash; the derivative of a composition is the product of the derivatives of each step</span>
+      <div style="margin-top:.5rem;">For a longer chain: y = f(g(h(x)))</div>
+      <div>dy/dx = df/dg &middot; dg/dh &middot; dh/dx</div>
+      <span class="comment">&mdash; multiply the local derivatives along the chain, from outermost to innermost</span>
+    </div>
+
+    <p>Each factor in the product is a <strong>local derivative</strong>: the rate of change of one operation with respect to its immediate input. The chain rule says that to find how the final output changes with respect to the first input, you multiply all the local derivatives in sequence.</p>
+
+    <h3>A concrete example</h3>
+
+    <p>Let <span class="math">h(x) = 3x</span>, <span class="math">g(u) = u + 2</span>, <span class="math">f(v) = v&sup2;</span>. Then <span class="math">y = f(g(h(x))) = (3x + 2)&sup2;</span>.</p>
+
+    <p>The chain rule gives us: <span class="math">dy/dx = df/dv &middot; dg/du &middot; dh/dx = 2v &middot; 1 &middot; 3 = 6(3x + 2)</span>.</p>
+
+    <p>At <span class="math">x = 1</span>: <span class="math">dy/dx = 6 &times; 5 = 30</span>. Each local derivative was trivial to compute. The chain rule composed them into the full derivative in one pass.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The chain rule decomposes one hard derivative into a product of easy ones. No individual operation in a neural network is mathematically difficult &mdash; multiply, add, sigmoid, ReLU, squared error all have simple derivatives. The chain rule is the mechanism that assembles these simple pieces into the gradient of the entire network. That assembly is backpropagation.<sup title="Backpropagation is precisely reverse-mode automatic differentiation, a technique known since Linnainmaa (1970), predating its popularization for neural networks.">[2]</sup></p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; The Algorithm</span>
+    <h2>The Backward Pass</h2>
+
+    <p>Now we apply the chain rule to the actual computation from Section III. We have four operations chained together &mdash; multiply, add, sigmoid, MSE &mdash; and we need <span class="math">&part;L/&part;w</span> and <span class="math">&part;L/&part;b</span>.</p>
+
+    <p>The backward pass starts at the loss and works toward the inputs. At each operation, it computes two things: the <strong>local derivative</strong> (how does this operation's output change with respect to its input?) and the <strong>upstream gradient</strong> (how does the loss change with respect to this operation's output, already computed by the previous backward step). It multiplies them to get the gradient for the next node upstream.</p>
+
+    <h3>The pattern at every node</h3>
+
+    <div class="math-block">
+      <span class="eq-label">The Backpropagation Rule</span>
+      <div>&part;L/&part;input = &part;L/&part;output &times; &part;output/&part;input</div>
+      <span class="comment">&mdash; upstream gradient &times; local derivative = downstream gradient</span>
+      <span class="comment">&mdash; this is applied at every operation, from the loss back to the parameters</span>
+    </div>
+
+    <p>Let's walk through it. Starting from the loss <span class="math">L = (a &minus; t)&sup2; = 0.00475</span>:</p>
+
+    <p><strong>Step 1: Derivative of the loss.</strong> <span class="math">&part;L/&part;a = 2(a &minus; t) = 2(0.731 &minus; 0.8) = &minus;0.138</span>. The loss decreases if <em>a</em> increases &mdash; the output is below the target.</p>
+
+    <p><strong>Step 2: Through the sigmoid.</strong> The local derivative of sigmoid is <span class="math">&sigma;'(z) = &sigma;(z)(1 &minus; &sigma;(z))</span>. At <span class="math">z<sub>2</sub> = 1.0</span>: <span class="math">&sigma;'(1.0) = 0.731 &times; 0.269 = 0.197</span>. Multiply: <span class="math">&part;L/&part;z<sub>2</sub> = &minus;0.138 &times; 0.197 = &minus;0.0271</span>.</p>
+
+    <p><strong>Step 3: Through the addition.</strong> The derivative of <span class="math">z<sub>2</sub> = z<sub>1</sub> + b</span> with respect to either input is 1. So <span class="math">&part;L/&part;z<sub>1</sub> = &minus;0.0271 &times; 1 = &minus;0.0271</span>, and <span class="math">&part;L/&part;b = &minus;0.0271 &times; 1 = &minus;0.0271</span>. The gradient flows through addition unchanged.</p>
+
+    <p><strong>Step 4: Through the multiplication.</strong> The derivative of <span class="math">z<sub>1</sub> = x &middot; w</span> with respect to <em>w</em> is <em>x</em>, and with respect to <em>x</em> is <em>w</em>. So <span class="math">&part;L/&part;w = &minus;0.0271 &times; 1.5 = &minus;0.0406</span>.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>One backward pass, four multiplications, and we have: <span class="math">&part;L/&part;w = &minus;0.041</span> and <span class="math">&part;L/&part;b = &minus;0.027</span>. Both gradients are negative, meaning the loss decreases when we increase <em>w</em> or <em>b</em>. This matches intuition: the output (0.731) is below the target (0.8), so making it larger helps.</p>
+    </div>
+
+    <p>Step through this computation below. Watch the forward pass fill in values left to right, then the backward pass propagate gradients right to left.</p>
+
+    <!-- DEMO 2: Computation Graph Step-Through -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Forward and Backward Through a Computation Graph</div>
+      <p class="interactive-setup">Step through the forward pass (computing values) then the backward pass (computing gradients). At each backward step, notice the pattern: upstream gradient &times; local derivative = downstream gradient.</p>
+      <canvas id="graph-canvas" height="340"></canvas>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn" onclick="graphReset()">&#8634; Reset</button>
+        <button class="btn" onclick="graphStep(-1)">&larr; Back</button>
+        <button class="btn" onclick="graphStep(1)">Forward &rarr;</button>
+        <button class="btn primary" onclick="graphAuto()">&#9654; Auto-play</button>
+        <span id="graph-counter" style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);margin-left:.5rem;"></span>
+      </div>
+      <div id="graph-desc" class="graph-desc"></div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">During the backward pass, the gradient flowing through the sigmoid node is multiplied by 0.197. Where does this number come from, and what would happen if it were larger?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf2','0.197 is the local derivative of the sigmoid at the value computed during the forward pass: &sigma;&prime;(1.0) = 0.731 &times; 0.269 = 0.197. The sigmoid derivative is always between 0 and 0.25 &mdash; it <em>attenuates</em> the gradient. If it were larger (closer to 1), more gradient signal would reach earlier layers. This is exactly why sigmoid causes vanishing gradients in deep networks, and why ReLU (with local derivative 0 or 1) became preferred.','')">It's &sigma;'(z) = &sigma;(z)(1&minus;&sigma;(z)), the sigmoid's local derivative. Larger means more gradient flows through.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','The learning rate is a separate concept. It scales the weight <em>update</em>, not the gradient during the backward pass. The 0.197 is the sigmoid&rsquo;s local derivative, intrinsic to the forward-pass computation.')">It's the learning rate. Larger means faster learning.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','The weight value (0.8) affects the gradient through the multiplication node, not the sigmoid node. Each node contributes its own local derivative. The sigmoid&rsquo;s local derivative depends only on its input activation.')">It's the weight value. Larger weights produce larger gradients.</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Update</span>
+    <h2>From Gradients to Learning</h2>
+
+    <p>Backpropagation computes gradients. It does not, by itself, change any weights. It answers the question "which direction should each weight move?" but not "how far should it move?" The learning step is a separate operation: <strong>gradient descent</strong>.<sup title="Backpropagation computes gradients; gradient descent uses them. The two are often conflated but are logically independent. You could use gradients from backprop with any optimizer: SGD, Adam, RMSprop, etc.">[3]</sup></p>
+
+    <div class="math-block">
+      <span class="eq-label">Gradient Descent Update Rule</span>
+      <div>w<sub>new</sub> = w<sub>old</sub> &minus; &eta; &middot; &part;L/&part;w</div>
+      <span class="comment">&mdash; subtract the gradient scaled by the learning rate &eta;</span>
+      <span class="comment">&mdash; the minus sign is because we want to <em>decrease</em> the loss</span>
+    </div>
+
+    <p>The <strong>learning rate</strong> &eta; is the step size. It controls how far you move in the gradient direction. This single number has an outsized effect on whether training succeeds or fails.</p>
+
+    <p>If &eta; is too small, each update barely moves the weights. The loss decreases, but at a glacial pace &mdash; thousands of epochs to make meaningful progress. If &eta; is too large, the update overshoots the minimum, landing on the opposite side at a higher loss than where it started. Larger still, and the updates diverge: the loss explodes.</p>
+
+    <p>For our example: <span class="math">w<sub>new</sub> = 0.8 &minus; &eta; &times; (&minus;0.041) = 0.8 + 0.041&eta;</span>. With <span class="math">&eta; = 0.5</span>: <span class="math">w<sub>new</sub> = 0.8205</span>. The weight increases slightly, pushing the output closer to the target.</p>
+
+    <p>Try it below. Click "Take Step" to apply one gradient descent update. Adjust the learning rate to feel the difference between convergence, oscillation, and divergence.</p>
+
+    <!-- DEMO 3: Learning Rate Explorer -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Learning Rate on a Loss Landscape</div>
+      <p class="interactive-setup">The curve is L(w) = (w &minus; 2)&sup2;. The dot is the current weight. Click "Take Step" to apply one gradient descent update. Adjust the learning rate. Notice: too small barely moves, too large overshoots, way too large diverges.</p>
+      <canvas id="lr-canvas" height="260"></canvas>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn primary" onclick="lrStep()">Take Step</button>
+        <button class="btn" onclick="lrReset()">&#8634; Reset</button>
+        <div class="slider-group" style="min-width:220px;">
+          <span>Learning rate (&eta;):</span>
+          <input type="range" id="lr-slider" min="0.05" max="1.2" step="0.05" value="0.30" oninput="onLrSlider(this.value)">
+          <span class="slider-val" id="lr-val">0.30</span>
+        </div>
+      </div>
+      <div class="lr-stats" id="lr-stats">w = 4.00 | L = 4.000 | &part;L/&part;w = 4.00 | Steps: 0</div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">On the parabolic loss L(w) = (w &minus; 2)&sup2;, you set the learning rate to exactly 1.0 and start at w = 4. What happens?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','At &eta; = 1.0, the update is w &larr; w &minus; 1.0 &middot; 2(w&minus;2). At w=4: w &larr; 4 &minus; 4 = 0. At w=0: w &larr; 0 &minus; (&minus;4) = 4. It oscillates forever, never reaching the minimum at w=2.')">The loss converges to zero in a few steps</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf3','At &eta;=1.0, the update overshoots exactly to the opposite side: w goes 4&rarr;0&rarr;4&rarr;0&hellip; forever. The gradient at w=4 is 2(4&minus;2)=4, so w&minus;&eta;&middot;4 = 0. At w=0, the gradient is &minus;4, so w jumps back to 4. Permanent oscillation. The optimal &eta; for a parabola is 0.5, which converges in a single step.','')">The weight oscillates between 4 and 0 forever, never reaching the minimum</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','Divergence requires &eta; > 1.0 for this parabola. At exactly 1.0, the weight oscillates with constant amplitude. Just above 1.0, it diverges. Just below, it slowly converges while oscillating.')">The loss diverges to infinity</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; The Failure Mode</span>
+    <h2>When Gradients Break</h2>
+
+    <p>Backpropagation multiplies local derivatives along the chain. In a network with 50 layers, the gradient of the loss with respect to a first-layer weight is a product of 50 local derivatives. If each derivative is a little less than 1, the product shrinks exponentially. If each is a little more than 1, the product explodes.</p>
+
+    <p>This is the <strong>vanishing gradient problem</strong>, and for two decades it was the central obstacle to training deep networks.<sup title="Hochreiter (1991) and Bengio et al. (1994) formally analyzed the vanishing gradient problem, showing that gradient magnitude decreases exponentially with depth for saturating activation functions.">[4]</sup></p>
+
+    <h3>Why sigmoid is the culprit</h3>
+
+    <p>The sigmoid function <span class="math">&sigma;(z) = 1/(1 + e<sup>&minus;z</sup>)</span> has a maximum derivative of 0.25, achieved at <span class="math">z = 0</span>. At most input values, the derivative is much less. In a chain of sigmoid layers, the gradient at layer <em>k</em> is bounded by <span class="math">0.25<sup>n&minus;k</sup></span> where <em>n</em> is the total depth.</p>
+
+    <p>At depth 5: the first-layer gradient is at most <span class="math">0.25<sup>4</sup> &approx; 0.004</span> times the output-layer gradient. At depth 10: <span class="math">0.25<sup>9</sup> &approx; 4 &times; 10<sup>&minus;6</sup></span>. At depth 20: the gradient is effectively zero. The early layers receive no useful learning signal. They don't learn. The network is deep on paper but shallow in practice.</p>
+
+    <!-- DEMO 4: Vanishing Gradients -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Vanishing Gradients</div>
+      <p class="interactive-setup">A chain of sigmoid layers, all weights = 1. The bar chart shows gradient magnitude at each layer, flowing from output (right) to input (left). Drag the depth slider and watch the early-layer gradients collapse.</p>
+      <canvas id="vg-canvas" height="220"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Network depth:</span>
+          <input type="range" id="vg-depth" min="2" max="12" step="1" value="4" oninput="onVgSlider(this.value)">
+          <span class="slider-val" id="vg-depth-val">4</span>
+        </div>
+        <span id="vg-ratio" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">Input gradient: 0.0086 (1/116&times; output)</span>
+      </div>
+      <div class="vg-legend">
+        <span>Each sigmoid attenuates the gradient by its local derivative (&le; 0.25)</span>
+      </div>
+    </div>
+
+    <h3>The solutions</h3>
+
+    <p>The vanishing gradient problem was solved not by changing backpropagation but by changing what it differentiates. <strong>ReLU</strong> &mdash; <span class="math">f(x) = max(0, x)</span> &mdash; has a derivative of exactly 1 for positive inputs and 0 for negative inputs. No attenuation. Gradients flow through ReLU layers undiminished, allowing networks with hundreds of layers to train.</p>
+
+    <p><strong>Residual connections</strong> (skip connections) provide an even more direct solution. By adding the input of a block to its output &mdash; <span class="math">y = f(x) + x</span> &mdash; the gradient always has a path that bypasses the block entirely. The derivative of <span class="math">y</span> with respect to <span class="math">x</span> is <span class="math">&part;f/&part;x + 1</span>. That <span class="math">+ 1</span> guarantees the gradient never vanishes, no matter how deep the network. This is why ResNets can train with 1,000+ layers.<sup title="He et al. (2016) introduced residual connections (ResNets), enabling training of networks with over 1,000 layers by providing gradient highways through skip connections.">[5]</sup></p>
+
+    <p>Careful <strong>weight initialization</strong> &mdash; setting initial weights so that each layer preserves the variance of its inputs &mdash; also helps. Xavier initialization (for sigmoid/tanh) and He initialization (for ReLU) are derived from this principle.<sup title="Xavier initialization: Glorot & Bengio (2010). He initialization: He et al. (2015). Both compute the initial weight variance that preserves signal magnitude through the forward and backward passes.">[6]</sup></p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A 10-layer network with sigmoid activations trains poorly because early-layer gradients are near zero. You switch all activations to ReLU. Why does this help?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf4','','ReLU is actually cheaper to compute (just a max operation), but that&rsquo;s not why it helps with gradient flow. The key difference is in the derivative, not the computation cost.')">ReLU is faster to compute, allowing more training iterations</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf4','Sigmoid&rsquo;s derivative is at most 0.25, so each layer shrinks the gradient by at least 4&times;. Ten layers: 4&sup1;&sup0; &asymp; 10&sup6; attenuation. ReLU&rsquo;s derivative is exactly 1 for positive inputs, so gradients pass through undiminished. The product of ten 1s is still 1. The caveat: ReLU&rsquo;s derivative is 0 for negative inputs (&ldquo;dead neurons&rdquo;), which is a different problem &mdash; but far less severe than universal attenuation.','')">ReLU's derivative is 1 (not ~0.25) for positive inputs, so gradients don't shrink at each layer</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf4','','ReLU does not produce larger gradients at the output layer &mdash; the final layer&rsquo;s gradient depends on the loss function, not the activation. The benefit is that ReLU preserves gradient magnitude as it flows <em>backward</em> through the network, rather than attenuating it at each layer.')">ReLU produces larger gradients at the output, compensating for the depth</button>
+      </div>
+      <div class="quiz-feedback" id="qf4"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- CLOSING -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <p>The remarkable thing about backpropagation is not that it's clever &mdash; it's that it's the only efficient option. The chain rule doesn't give you one method among many for computing gradients in a deep network. It gives you <em>the</em> method. Every alternative is either a special case of the same idea or computationally intractable.</p>
+
+    <p>Every neural network trained in the last forty years &mdash; every image classifier, every language model, every protein folder, every game-playing agent &mdash; learned through exactly this computation. The architectures changed beyond recognition. The data grew by orders of magnitude. The hardware transformed from CPUs to clusters of GPUs to custom TPUs. But the algorithm that tells each weight how to change is the same one Rumelhart, Hinton, and Williams described in 1986: run the input forward, compute the loss, propagate the gradient backward through the chain rule, update each weight by a small step in the gradient direction.</p>
+
+    <p>The scale changed. The idea did not.</p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote">
+        <span class="fn-num">[1]</span>
+        <span>Minsky, M. (1961). "Steps toward Artificial Intelligence." <em>Proceedings of the IRE</em>. The credit assignment problem &mdash; determining which actions in a sequence were responsible for a later outcome &mdash; was identified as a central challenge for learning systems decades before backpropagation became practical.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[2]</span>
+        <span>Linnainmaa, S. (1970). "The representation of the cumulative rounding error of an algorithm as a Taylor expansion of the local rounding errors." Master's thesis, University of Helsinki. This thesis described what we now call reverse-mode automatic differentiation &mdash; the general algorithmic technique that backpropagation instantiates for neural networks.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[3]</span>
+        <span>Rumelhart, D.E., Hinton, G.E., & Williams, R.J. (1986). "Learning representations by back-propagating errors." <em>Nature</em>. The paper that made backpropagation practical for training multi-layer networks, demonstrating that hidden layers could learn useful internal representations.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[4]</span>
+        <span>Bengio, Y., Simard, P., & Frasconi, P. (1994). "Learning Long-Term Dependencies with Gradient Descent is Difficult." <em>IEEE Transactions on Neural Networks</em>. Formally proved that gradient magnitude decreases exponentially with the number of layers for bounded-derivative activation functions like sigmoid and tanh.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[5]</span>
+        <span>He, K., Zhang, X., Ren, S., & Sun, J. (2016). "Deep Residual Learning for Image Recognition." <em>CVPR</em>. Residual connections added a "gradient highway" &mdash; a direct additive path through which gradients flow unattenuated regardless of depth. This enabled training of networks with over 1,000 layers.</span>
+      </div>
+      <div class="footnote">
+        <span class="fn-num">[6]</span>
+        <span>Glorot, X. & Bengio, Y. (2010). "Understanding the difficulty of training deep feedforward neural networks." <em>AISTATS</em>. Showed that initializing weights with variance 1/<em>n</em> (where <em>n</em> is the layer width) preserves signal variance through forward and backward passes, preventing gradient issues at initialization.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// DEMO 1: Cost Comparison
+// ═══════════════════════════════════════
+window.onCostSlider = function(v) {
+  v = parseInt(v);
+  document.getElementById('cost-n-val').textContent = v;
+  tone(150 + v * 0.5, 'triangle', 0.08, 0.04);
+
+  const maxH = 170;
+  const perturbCost = v + 1;
+  const bpCost = 2;
+  const perturbH = Math.min(maxH, maxH * perturbCost / Math.max(perturbCost, 10));
+  const bpH = Math.max(2, maxH * bpCost / Math.max(perturbCost, 10));
+
+  document.getElementById('perturb-bar').style.height = perturbH + 'px';
+  document.getElementById('perturb-val').textContent = perturbCost.toLocaleString();
+  document.getElementById('bp-bar').style.height = bpH + 'px';
+  document.getElementById('bp-val').textContent = bpCost;
+  document.getElementById('cost-ratio').textContent = 'Speedup: ' + (perturbCost / bpCost).toFixed(1) + '\u00d7';
+};
+
+// ═══════════════════════════════════════
+// DEMO 2: Computation Graph Step-Through
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('graph-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 340;
+
+  // Computation values
+  const x = 1.5, w = 0.8, b = -0.2, t = 0.8;
+  const z1 = x * w;                        // 1.20
+  const z2 = z1 + b;                       // 1.00
+  const a = 1 / (1 + Math.exp(-z2));       // 0.7311
+  const L = (a - t) * (a - t);             // 0.00475
+
+  // Backward
+  const dL_da = 2 * (a - t);               // -0.1378
+  const da_dz2 = a * (1 - a);              // 0.1966
+  const dL_dz2 = dL_da * da_dz2;           // -0.02709
+  const dL_dz1 = dL_dz2 * 1;              // -0.02709
+  const dL_dw = dL_dz1 * x;               // -0.04063
+  const dL_db = dL_dz2 * 1;               // -0.02709
+
+  // Node definitions: id, label, x, y (normalized 0-1)
+  const nodes = [
+    { id: 'x',   lbl: 'x',   px: 0.06, py: 0.25, val: x,  type: 'input' },
+    { id: 'w',   lbl: 'w',   px: 0.06, py: 0.75, val: w,  type: 'param' },
+    { id: 'mul', lbl: '\u00d7',  px: 0.22, py: 0.50, val: z1, type: 'op' },
+    { id: 'b',   lbl: 'b',   px: 0.30, py: 0.85, val: b,  type: 'param' },
+    { id: 'add', lbl: '+',   px: 0.40, py: 0.50, val: z2, type: 'op' },
+    { id: 'sig', lbl: '\u03c3',  px: 0.56, py: 0.50, val: a,  type: 'op' },
+    { id: 't',   lbl: 't',   px: 0.64, py: 0.85, val: t,  type: 'input' },
+    { id: 'mse', lbl: 'MSE', px: 0.74, py: 0.50, val: L,  type: 'op' },
+    { id: 'L',   lbl: 'L',   px: 0.92, py: 0.50, val: L,  type: 'output' },
+  ];
+
+  const edges = [
+    ['x','mul'],['w','mul'],['mul','add'],['b','add'],
+    ['add','sig'],['sig','mse'],['t','mse'],['mse','L']
+  ];
+
+  // Gradient map: node id → gradient value
+  const grads = {
+    L: 1, mse: 1, sig: dL_da, add: dL_dz2, mul: dL_dz1,
+    w: dL_dw, b: dL_db, x: dL_dz1 * w
+  };
+
+  // Step frames
+  const frames = [
+    { phase:'init', active:new Set(), fwdTo:-1, bwdFrom:-1,
+      desc:'The computation graph: input x and weight w multiply, add bias b, sigmoid, then MSE loss against target t.' },
+    { phase:'fwd', active:new Set(['x','w']), fwdTo:0, bwdFrom:-1,
+      desc:'Forward: x = 1.50, w = 0.80 are the inputs to the multiply node.' },
+    { phase:'fwd', active:new Set(['x','w','mul']), fwdTo:1, bwdFrom:-1,
+      desc:'Forward: z\u2081 = x \u00d7 w = 1.50 \u00d7 0.80 = 1.20' },
+    { phase:'fwd', active:new Set(['x','w','mul','b','add']), fwdTo:2, bwdFrom:-1,
+      desc:'Forward: z\u2082 = z\u2081 + b = 1.20 + (\u22120.20) = 1.00' },
+    { phase:'fwd', active:new Set(['x','w','mul','b','add','sig']), fwdTo:3, bwdFrom:-1,
+      desc:'Forward: a = \u03c3(z\u2082) = \u03c3(1.00) = 0.731. Sigmoid squashes the value into (0,1).' },
+    { phase:'fwd', active:new Set(['x','w','mul','b','add','sig','t','mse','L']), fwdTo:4, bwdFrom:-1,
+      desc:'Forward: L = (a \u2212 t)\u00b2 = (0.731 \u2212 0.800)\u00b2 = 0.00475. Forward pass complete. All intermediate values saved.' },
+    { phase:'bwd', active:new Set(['L','mse']), fwdTo:4, bwdFrom:0,
+      desc:'Backward starts: \u2202L/\u2202a = 2(a \u2212 t) = 2(\u22120.069) = \u22120.138. Gradient of loss w.r.t. sigmoid output.' },
+    { phase:'bwd', active:new Set(['L','mse','sig']), fwdTo:4, bwdFrom:1,
+      desc:'Through sigmoid: local deriv \u03c3\u2032(1.0) = 0.731 \u00d7 0.269 = 0.197. \u2202L/\u2202z\u2082 = \u22120.138 \u00d7 0.197 = \u22120.027' },
+    { phase:'bwd', active:new Set(['L','mse','sig','add','b']), fwdTo:4, bwdFrom:2,
+      desc:'Through addition: local deriv = 1. \u2202L/\u2202z\u2081 = \u22120.027 \u00d7 1 = \u22120.027. Also \u2202L/\u2202b = \u22120.027.' },
+    { phase:'bwd', active:new Set(['L','mse','sig','add','b','mul','w','x']), fwdTo:4, bwdFrom:3,
+      desc:'Through multiply: \u2202L/\u2202w = \u22120.027 \u00d7 x = \u22120.027 \u00d7 1.5 = \u22120.041. All gradients computed in one backward pass!' },
+  ];
+
+  let step = 0;
+  let autoTimer = null;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function nodeById(id) { return nodes.find(n => n.id === id); }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+    const f = frames[step];
+    const R = 20;
+
+    // Draw edges
+    edges.forEach(([fromId, toId]) => {
+      const a = nodeById(fromId), bn = nodeById(toId);
+      const ax = a.px * W, ay = a.py * H_PX;
+      const bx = bn.px * W, by = bn.py * H_PX;
+      const both = f.active.has(fromId) && f.active.has(toId);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+      ctx.strokeStyle = both ?
+        (f.phase === 'bwd' ? 'rgba(196,98,45,0.25)' : 'rgba(42,93,176,0.2)') :
+        'rgba(0,0,0,0.06)';
+      ctx.lineWidth = both ? 2 : 1;
+      ctx.stroke();
+
+      // Arrow
+      if (both) {
+        const ang = Math.atan2(by - ay, bx - ax);
+        const mx = (ax + bx) / 2, my = (ay + by) / 2;
+        ctx.fillStyle = f.phase === 'bwd' ? '#c4622d55' : '#2a5db055';
+        ctx.beginPath();
+        ctx.moveTo(mx + 6 * Math.cos(ang), my + 6 * Math.sin(ang));
+        ctx.lineTo(mx - 6 * Math.cos(ang - 0.5), my - 6 * Math.sin(ang - 0.5));
+        ctx.lineTo(mx - 6 * Math.cos(ang + 0.5), my - 6 * Math.sin(ang + 0.5));
+        ctx.closePath(); ctx.fill();
+      }
+    });
+
+    // Draw nodes
+    nodes.forEach(n => {
+      const nx = n.px * W, ny = n.py * H_PX;
+      const active = f.active.has(n.id);
+      const isOp = n.type === 'op';
+      const isParam = n.type === 'param';
+
+      // Glow
+      if (active && f.phase === 'bwd') {
+        ctx.beginPath(); ctx.arc(nx, ny, R + 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(196,98,45,0.1)'; ctx.fill();
+      }
+
+      // Circle
+      ctx.beginPath(); ctx.arc(nx, ny, R, 0, Math.PI * 2);
+      let color = '#2a5db0';
+      if (isParam) color = '#6b3fa0';
+      if (f.phase === 'bwd' && active) color = '#c4622d';
+      ctx.fillStyle = active ? color + (isOp ? 'cc' : '88') : '#f3f1ec';
+      ctx.strokeStyle = active ? color : '#e2dfd8';
+      ctx.lineWidth = 1.5;
+      if (active && f.phase === 'bwd') { ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 8; }
+      ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+
+      // Label
+      ctx.fillStyle = active ? 'white' : '#aaa';
+      ctx.font = "bold 11px 'DM Sans'";
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(n.lbl, nx, ny);
+
+      // Forward value (above node)
+      if (f.fwdTo >= 0 && active && n.val !== undefined) {
+        const showFwd = (f.phase === 'fwd' || f.phase === 'bwd');
+        if (showFwd) {
+          ctx.fillStyle = '#2a5db0';
+          ctx.font = "bold 9px 'DM Mono'";
+          ctx.fillText(n.val.toFixed(n.val === 0 ? 1 : (Math.abs(n.val) < 0.01 ? 4 : 2)), nx, ny - R - 8);
+        }
+      }
+
+      // Gradient value (below node, during backward pass)
+      if (f.phase === 'bwd' && f.active.has(n.id) && grads[n.id] !== undefined) {
+        ctx.fillStyle = '#c4622d';
+        ctx.font = "bold 9px 'DM Mono'";
+        const gv = grads[n.id];
+        ctx.fillText('\u2202L=' + gv.toFixed(3), nx, ny + R + 12);
+      }
+    });
+
+    // Phase label
+    ctx.fillStyle = f.phase === 'bwd' ? '#c4622d' : (f.phase === 'fwd' ? '#2a5db0' : '#7a7870');
+    ctx.font = "10px 'DM Mono'";
+    ctx.textAlign = 'left';
+    const phaseLabel = f.phase === 'init' ? 'READY' : f.phase === 'fwd' ? 'FORWARD PASS \u2192' : '\u2190 BACKWARD PASS';
+    ctx.fillText(phaseLabel, 8, 16);
+
+    document.getElementById('graph-counter').textContent = `Step ${step + 1} / ${frames.length}`;
+    document.getElementById('graph-desc').textContent = f.desc;
+  }
+
+  window.graphStep = function(dir) {
+    const next = step + dir;
+    if (next >= 0 && next < frames.length) {
+      step = next;
+      draw();
+      playStep();
+    }
+  };
+
+  window.graphReset = function() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    step = 0; draw(); playClick();
+  };
+
+  window.graphAuto = function() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; return; }
+    step = 0; draw();
+    autoTimer = setInterval(() => {
+      if (step >= frames.length - 1) { clearInterval(autoTimer); autoTimer = null; playOK(); return; }
+      step++; draw(); playStep();
+    }, 1200);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 3: Learning Rate Explorer
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('lr-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 260;
+
+  // Loss function: L(w) = (w - 2)^2
+  function loss(w) { return (w - 2) * (w - 2); }
+  function grad(w) { return 2 * (w - 2); }
+
+  let wCur = 4.0;
+  let lr = 0.30;
+  let history = [4.0];
+  let stepCount = 0;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+    const pad = { l: 44, r: 16, t: 20, b: 36 };
+    const gw = W - pad.l - pad.r, gh = H_PX - pad.t - pad.b;
+    const wMin = -1, wMax = 5, lMin = 0, lMax = 10;
+
+    function px(w) { return pad.l + (w - wMin) / (wMax - wMin) * gw; }
+    function py(l) { return pad.t + (1 - (l - lMin) / (lMax - lMin)) * gh; }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.8;
+    for (let w = 0; w <= 4; w++) {
+      ctx.beginPath(); ctx.moveTo(px(w), pad.t); ctx.lineTo(px(w), pad.t + gh); ctx.stroke();
+    }
+    for (let l = 0; l <= 10; l += 2) {
+      ctx.beginPath(); ctx.moveTo(pad.l, py(l)); ctx.lineTo(pad.l + gw, py(l)); ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = '#c8c4bc'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, py(0)); ctx.lineTo(pad.l + gw, py(0)); ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+    [-1, 0, 1, 2, 3, 4, 5].forEach(v => ctx.fillText(v, px(v), py(0) + 14));
+    ctx.textAlign = 'right';
+    [0, 2, 4, 6, 8].forEach(v => ctx.fillText(v, pad.l - 6, py(v) + 3));
+
+    // Labels
+    ctx.fillStyle = '#7a7870'; ctx.font = "10px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('w', pad.l + gw / 2, H_PX - 4);
+    ctx.save(); ctx.translate(10, pad.t + gh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('L(w)', 0, 0); ctx.restore();
+
+    // Loss curve
+    ctx.beginPath();
+    for (let i = 0; i <= 400; i++) {
+      const w = wMin + (wMax - wMin) * i / 400;
+      const l = loss(w);
+      i === 0 ? ctx.moveTo(px(w), py(l)) : ctx.lineTo(px(w), py(l));
+    }
+    ctx.strokeStyle = '#2a5db0'; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // Minimum marker
+    ctx.fillStyle = '#1a7a4a44';
+    ctx.beginPath(); ctx.arc(px(2), py(0), 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a7a4a'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+    ctx.fillText('min', px(2), py(0) + 22);
+
+    // Tangent line at current position
+    const g = grad(wCur);
+    const tanLen = 0.8;
+    const tw1 = wCur - tanLen, tw2 = wCur + tanLen;
+    const tl1 = loss(wCur) + g * (tw1 - wCur);
+    const tl2 = loss(wCur) + g * (tw2 - wCur);
+    ctx.beginPath(); ctx.moveTo(px(tw1), py(tl1)); ctx.lineTo(px(tw2), py(tl2));
+    ctx.strokeStyle = 'rgba(196,98,45,0.4)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+    // History trail
+    if (history.length > 1) {
+      for (let i = 0; i < history.length - 1; i++) {
+        const w1 = history[i], w2 = history[i + 1];
+        // Vertical drop to curve at w2
+        ctx.beginPath();
+        ctx.moveTo(px(w1), py(loss(w1)));
+        ctx.lineTo(px(w2), py(loss(w2)));
+        ctx.strokeStyle = 'rgba(196,98,45,0.15)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Old dots
+        if (i < history.length - 1) {
+          ctx.beginPath(); ctx.arc(px(w1), py(loss(w1)), 3, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(196,98,45,0.25)'; ctx.fill();
+        }
+      }
+    }
+
+    // Current position dot
+    const curL = loss(wCur);
+    ctx.beginPath(); ctx.arc(px(wCur), py(Math.min(curL, lMax)), 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 8;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    // Arrow showing update direction
+    if (Math.abs(g) > 0.01) {
+      const arrowW = wCur - lr * g;
+      const arrowPx = px(Math.max(wMin, Math.min(wMax, arrowW)));
+      ctx.beginPath();
+      ctx.moveTo(px(wCur), py(curL) - 14);
+      ctx.lineTo(arrowPx, py(curL) - 14);
+      ctx.strokeStyle = '#c4622d88'; ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Arrowhead
+      const dir = arrowW > wCur ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(arrowPx, py(curL) - 14);
+      ctx.lineTo(arrowPx - dir * 6, py(curL) - 18);
+      ctx.lineTo(arrowPx - dir * 6, py(curL) - 10);
+      ctx.closePath(); ctx.fillStyle = '#c4622d88'; ctx.fill();
+    }
+
+    updateStats();
+  }
+
+  function updateStats() {
+    const g = grad(wCur);
+    const curL = loss(wCur);
+    document.getElementById('lr-stats').innerHTML =
+      `w = ${wCur.toFixed(2)} | L = ${curL.toFixed(3)} | \u2202L/\u2202w = ${g.toFixed(2)} | Steps: ${stepCount}`;
+  }
+
+  window.lrStep = function() {
+    const g = grad(wCur);
+    wCur = wCur - lr * g;
+    stepCount++;
+    history.push(wCur);
+    draw();
+    const curL = loss(wCur);
+    tone(Math.max(200, Math.min(800, 600 - curL * 50)), 'sine', 0.1, 0.04);
+  };
+
+  window.lrReset = function() {
+    wCur = 4.0; stepCount = 0; history = [4.0];
+    draw(); playClick();
+  };
+
+  window.onLrSlider = function(v) {
+    lr = parseFloat(v);
+    document.getElementById('lr-val').textContent = lr.toFixed(2);
+    tone(150 + lr * 300, 'triangle', 0.08, 0.04);
+    draw();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 4: Vanishing Gradients
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('vg-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 220;
+
+  function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+  function sigmoidDeriv(z) { const s = sigmoid(z); return s * (1 - s); }
+
+  function computeGradients(depth) {
+    // Forward pass: chain of sigmoid layers, w=1, b=0, input=1
+    const zs = [], as = [];
+    let inp = 1.0;
+    for (let i = 0; i < depth; i++) {
+      const z = inp * 1.0; // weight = 1
+      const a = sigmoid(z);
+      zs.push(z);
+      as.push(a);
+      inp = a;
+    }
+
+    // Backward: gradient at each layer
+    const gradMag = new Array(depth);
+    gradMag[depth - 1] = 1.0; // normalized: output layer gradient = 1
+    for (let i = depth - 2; i >= 0; i--) {
+      gradMag[i] = gradMag[i + 1] * sigmoidDeriv(zs[i + 1]) * 1.0; // weight = 1
+    }
+    return { gradMag, zs, as };
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('vg-depth').value));
+  }
+
+  function draw(depth) {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const { gradMag } = computeGradients(depth);
+    const pad = { l: 50, r: 20, t: 24, b: 40 };
+    const gw = W - pad.l - pad.r, gh = H_PX - pad.t - pad.b;
+    const n = depth;
+    const barW = Math.min(50, gw / n * 0.7);
+    const spacing = gw / n;
+
+    // Max gradient for scaling (output layer = 1.0)
+    const maxG = 1.0;
+
+    // Grid lines
+    [0.25, 0.5, 0.75, 1.0].forEach(v => {
+      const y = pad.t + gh * (1 - v / maxG);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + gw, y); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.8;
+      ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'right';
+      ctx.fillText(v.toFixed(2), pad.l - 6, y + 3);
+    });
+
+    // Bars
+    gradMag.forEach((g, i) => {
+      const barH = Math.max(1, gh * (g / maxG));
+      const x = pad.l + i * spacing + (spacing - barW) / 2;
+      const y = pad.t + gh - barH;
+
+      // Color: accent for high gradient, fading to muted for vanishing
+      const intensity = Math.min(1, g * 3);
+      const r = Math.round(196 * intensity + 226 * (1 - intensity));
+      const gr = Math.round(98 * intensity + 222 * (1 - intensity));
+      const bl = Math.round(45 * intensity + 216 * (1 - intensity));
+      ctx.fillStyle = `rgb(${r},${gr},${bl})`;
+      ctx.fillRect(x, y, barW, barH);
+
+      // Value label
+      ctx.fillStyle = g < 0.001 ? '#c0392b' : '#7a7870';
+      ctx.font = "8px 'DM Mono'"; ctx.textAlign = 'center';
+      const label = g >= 0.01 ? g.toFixed(3) : g.toExponential(0);
+      ctx.fillText(label, x + barW / 2, y - 4);
+
+      // Layer label
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+      ctx.fillText(i === 0 ? 'Input' : (i === depth - 1 ? 'Output' : `L${i + 1}`),
+        x + barW / 2, pad.t + gh + 16);
+    });
+
+    // Y-axis label
+    ctx.save(); ctx.translate(10, pad.t + gh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Gradient magnitude', 0, 0); ctx.restore();
+
+    // Direction arrow
+    ctx.fillStyle = '#c4622d88'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('\u2190 gradient flows this way', pad.l + gw / 2, pad.t + gh + 30);
+
+    // Update ratio text
+    const inputG = gradMag[0];
+    const ratio = inputG > 0 ? Math.round(1 / inputG) : Infinity;
+    document.getElementById('vg-ratio').textContent =
+      `Input gradient: ${inputG < 0.0001 ? inputG.toExponential(1) : inputG.toFixed(4)} (1/${ratio}\u00d7 output)`;
+  }
+
+  window.onVgSlider = function(v) {
+    v = parseInt(v);
+    document.getElementById('vg-depth-val').textContent = v;
+    tone(150 + v * 30, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>
