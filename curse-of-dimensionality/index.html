@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Curse of Dimensionality — Why Your Intuition Breaks Above Three Dimensions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
+
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+
+.big-number{font-family:'DM Mono',monospace;font-size:1.8rem;color:var(--accent);text-align:center;padding:1rem 0;line-height:1.4;}
+.big-number .label{font-family:'DM Sans',sans-serif;font-size:.72rem;color:var(--muted);display:block;margin-top:.3rem;letter-spacing:.05em;}
+
+.sampling-readout{font-family:'DM Mono',monospace;font-size:1.4rem;color:var(--accent);text-align:center;padding:.8rem;background:white;border:1px solid var(--border);border-radius:3px;word-break:break-all;line-height:1.5;}
+.sampling-readout .comparison{font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);display:block;margin-top:.5rem;font-style:italic;}
+
+.knn-stats{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.8;}
+
+@media(max-width:640px){
+  .big-number{font-size:1.3rem;}
+  .sampling-readout{font-size:1rem;}
+}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Mathematics &middot; 03
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Mathematics</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~25 min read</span>
+    </div>
+    <h1 class="post-title">The Curse of Dimensionality &mdash; Why Your Intuition Breaks Above Three Dimensions</h1>
+    <p class="post-subtitle">A circle fills 78% of its bounding square. A 100-dimensional sphere fills 0.000...0018% of its cube &mdash; with 70 zeros after the decimal. Where did the volume go?</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">The Vanishing Sphere</a></li>
+        <li><a href="#s2">Where the Volume Went</a></li>
+        <li><a href="#s3">The Hollow Sphere</a></li>
+        <li><a href="#s4">When Distance Stops Working</a></li>
+        <li><a href="#s5">The Exponential Tax</a></li>
+        <li><a href="#s6">The Fall of Nearest Neighbors</a></li>
+        <li><a href="#s7">The Escape</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Opening</span>
+    <h2>The Vanishing Sphere</h2>
+
+    <p>Draw a circle inside a square. The circle touches all four edges. What fraction of the square&rsquo;s area does the circle cover?</p>
+
+    <p>You can compute it: the square has side 2<em>r</em>, area 4<em>r</em>&sup2;. The circle has area &pi;<em>r</em>&sup2;. The ratio is <span class="math">&pi;/4 &approx; 0.785</span>. The circle fills about 78.5% of its bounding square. This feels right &mdash; the circle is snug, with small triangular gaps in the corners.</p>
+
+    <p>Move to three dimensions. A sphere inscribed in a cube. Same calculation: the ratio is <span class="math">&pi;/6 &approx; 0.524</span>. The sphere fills 52.4% of the cube. A noticeable drop &mdash; those corner gaps are now corner <em>pyramids</em> &mdash; but the sphere is still the majority of the volume.</p>
+
+    <p>Now ask the question that breaks everything: what happens as you keep going?</p>
+
+    <p>At 10 dimensions, the hypersphere fills 0.25% of the hypercube. At 20 dimensions: 0.0000000025%. By 100 dimensions, the ratio has 70 zeros after the decimal point before any nonzero digit appears.<sup><a href="#fn-1" title="The volume formula for a d-dimensional unit sphere uses the Gamma function: V(d) = &pi;^(d/2) / &Gamma;(d/2 + 1).">[1]</a></sup> The sphere hasn&rsquo;t just shrunk. It has effectively vanished from its own container.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Vanishing Ratio</div>
+      <p class="interactive-setup">Drag the slider to increase dimensions. The chart shows the ratio of hypersphere volume to hypercube volume on a logarithmic scale. Watch how quickly the sphere becomes negligible.</p>
+      <canvas id="sphere-canvas" height="260"></canvas>
+      <div class="big-number" id="sphere-readout">78.54%<span class="label">sphere fills this much of the cube</span></div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Dimensions:</span>
+          <input type="range" id="sphere-dim" min="2" max="200" step="1" value="2" oninput="onSphereDim(this.value)">
+          <span class="slider-val" id="sphere-dim-val">2</span>
+        </div>
+      </div>
+    </div>
+
+    <p>This is not a rounding artifact. The sphere genuinely occupies a vanishing fraction of the cube it sits inside. And this leads to the question that structures the rest of this explainer: <em>where did the volume go?</em></p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Corners</span>
+    <h2>Where the Volume Went</h2>
+
+    <p>The volume went to the corners.</p>
+
+    <p>In 2D, a square has 4 corners. In 3D, a cube has 8. In <em>d</em> dimensions, a hypercube has <span class="math">2<sup>d</sup></span> corners. At <em>d</em> = 100, that&rsquo;s 2<sup>100</sup> &approx; 1.27 &times; 10<sup>30</sup> corners &mdash; more than a billion billion billion.</p>
+
+    <p>Each corner sits at a distance of <span class="math">&radic;d / 2</span> from the center. (The distance from the center of a unit cube to a corner is half the diagonal, and the diagonal of a <em>d</em>-dimensional unit cube has length <span class="math">&radic;d</span>.) At <em>d</em> = 100, the farthest corner is 5.0 units from the center. The inscribed sphere only reaches 0.5 units. The corners are <strong>ten times farther</strong> away than the sphere can reach, and there are 10<sup>30</sup> of them, each claiming a sliver of volume that the sphere cannot touch.</p>
+
+    <p>This is the geometric root of the curse. In three dimensions, the corners are small &mdash; little tetrahedra clipped from the cube. In high dimensions, they are <em>everything</em>. The sphere sits in the center like a pinprick in a vast cloud of corners.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>A high-dimensional cube is not like a bigger version of a 3D cube. It is a qualitatively different object: almost all of its volume lives far from the center, clustered near exponentially many corners that the inscribed sphere cannot reach.</p>
+    </div>
+
+    <p>You can see this directly. Sample 2,000 points uniformly at random from a <em>d</em>-dimensional unit cube and measure how far each is from the center. In 2D, the points spread fairly evenly &mdash; some near the center, some near the edges. As <em>d</em> grows, the distribution shifts. By <em>d</em> = 50, nearly every point sits far beyond the sphere boundary.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Where the Points Are</div>
+      <p class="interactive-setup">Drag the dimension slider. The histogram shows distances from the center for 2,000 uniform random points in a unit cube. The vertical red line marks the inscribed sphere boundary (r = 0.5). Watch the histogram drift past it.</p>
+      <canvas id="hist-canvas" height="240"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Dimensions:</span>
+          <input type="range" id="hist-dim" min="2" max="100" step="1" value="2" oninput="onHistDim(this.value)">
+          <span class="slider-val" id="hist-dim-val">2</span>
+        </div>
+        <span id="hist-info" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">Inside sphere: 78%</span>
+      </div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">Sample 1,000 points uniformly from a 100-dimensional unit cube. Roughly how many land inside the inscribed sphere?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','In 2D, about 785 out of 1,000 points would land inside the circle. But 100D is a different universe. The sphere occupies a fraction so small it has 70 zeros after the decimal point. No finite sample will ever hit it.')">About 785 &mdash; same as the 2D ratio</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','Closer in spirit, but still far too generous. The fraction isn&rsquo;t small &mdash; it&rsquo;s vanishingly, absurdly small. At 100 dimensions, the sphere-to-cube volume ratio is roughly 10<sup>&minus;70</sup>. You could sample until the heat death of the universe and never hit the sphere.')">About 50 &mdash; the sphere is smaller but still catches some</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf1','Exactly. The volume ratio is approximately 10<sup>&minus;70</sup>. You would need more samples than there are atoms in the observable universe (about 10<sup>80</sup>) before you&rsquo;d expect even one point inside the sphere. The sphere is there, mathematically &mdash; it just occupies none of the volume.','')">Effectively zero &mdash; you could sample forever and never hit the sphere</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Shell</span>
+    <h2>The Hollow Sphere</h2>
+
+    <p>The corners explain where the cube&rsquo;s volume went. But the sphere has its own surprise.</p>
+
+    <p>Take a <em>d</em>-dimensional sphere of radius 1 and define a "shell" as the outer &epsilon;-fraction of its radius &mdash; the region between radius <span class="math">1 &minus; &epsilon;</span> and radius 1. In 3D with a 10% shell, this is the outer skin. It contains about 27% of the sphere&rsquo;s volume. Substantial, but the interior still dominates.</p>
+
+    <p>In high dimensions, the interior evaporates. The fraction of volume in the outer shell is:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Shell Volume Fraction</span>
+      <div>V<sub>shell</sub> / V<sub>total</sub> = 1 &minus; (1 &minus; &epsilon;)<sup>d</sup></div>
+      <span class="comment">&mdash; at &epsilon; = 0.10 and d = 100: 1 &minus; 0.9<sup>100</sup> = 1 &minus; 0.0000265 = 99.997%</span>
+    </div>
+
+    <p>A 10% shell in 100 dimensions contains <strong>99.997%</strong> of the sphere&rsquo;s volume. The sphere is, for all practical purposes, hollow. Its interior is mathematically present but volumetrically negligible. If you sampled a million random points from inside this sphere, not one would land in the inner 90% of its radius.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Hollow Sphere</div>
+      <p class="interactive-setup">The circle shows a cross-section of the sphere. The shaded shell is the outer &epsilon;-fraction. Drag both sliders and watch how even a thin shell swallows nearly all volume in high dimensions.</p>
+      <canvas id="shell-canvas" height="280"></canvas>
+      <div class="big-number" id="shell-readout">27.1%<span class="label">of volume in outer shell</span></div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Dimensions:</span>
+          <input type="range" id="shell-dim" min="2" max="200" step="1" value="3" oninput="onShellDim()">
+          <span class="slider-val" id="shell-dim-val">3</span>
+        </div>
+        <div class="slider-group">
+          <span>Shell thickness (&epsilon;):</span>
+          <input type="range" id="shell-eps" min="0.01" max="0.50" step="0.01" value="0.10" oninput="onShellDim()">
+          <span class="slider-val" id="shell-eps-val">10%</span>
+        </div>
+      </div>
+    </div>
+
+    <p>This is why sampling from a high-dimensional Gaussian looks nothing like sampling from a 2D bell curve. In 2D, most samples cluster near the peak. In 1,000 dimensions, most samples land in a thin shell far from the mean &mdash; because that thin shell is where the volume is. The mode (the peak) and the typical point (the shell) diverge completely.<sup><a href="#fn-2" title="For a d-dimensional standard Gaussian, the expected distance from the mean grows as &radic;d, while the mode stays at the origin. In 1,000D, typical samples are about 31.6 standard deviations from the mode.">[2]</a></sup></p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Convergence</span>
+    <h2>When Distance Stops Working</h2>
+
+    <p>Everything so far has been geometry. Now we reach the consequence that hurts algorithms.</p>
+
+    <p>Take 50 random points in a <em>d</em>-dimensional unit cube. For every pair, compute the Euclidean distance. In 2D, the pairwise distances spread out &mdash; some pairs are close, some are far. The ratio of the farthest distance to the nearest distance is large. This is what makes nearest-neighbor search meaningful: the nearest neighbor is genuinely <em>much closer</em> than most other points.</p>
+
+    <p>As <em>d</em> grows, pairwise distances converge. The histogram narrows. The farthest pair becomes barely farther than the nearest pair. By <em>d</em> = 500, the ratio of maximum to minimum distance approaches 1. "Nearest" and "farthest" become almost synonymous.<sup><a href="#fn-3" title="Beyer et al. (1999) proved that under mild conditions, the ratio of maximum to minimum distance converges to 1 as d &rarr; &infin;. This is the distance concentration theorem.">[3]</a></sup></p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Distance Concentration</div>
+      <p class="interactive-setup">The histogram shows all pairwise distances between 50 random points. As you increase dimensions, watch the histogram collapse into a narrow spike. The max/min ratio tells you how much "nearest" differs from "farthest."</p>
+      <canvas id="dist-canvas" height="240"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Dimensions:</span>
+          <input type="range" id="dist-dim" min="2" max="500" step="1" value="2" oninput="onDistDim(this.value)">
+          <span class="slider-val" id="dist-dim-val">2</span>
+        </div>
+        <span id="dist-ratio" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);">Max/Min: 14.2</span>
+      </div>
+    </div>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>When distances concentrate, "nearest neighbor" stops being meaningful. If every point is roughly the same distance from every other point, then the nearest neighbor carries almost no more information than a randomly chosen point. Any algorithm that relies on local structure &mdash; k-NN, kernel density estimation, RBF networks &mdash; is in trouble.</p>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">Why does nearest-neighbor search fail in very high dimensions?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','Computational cost does grow (tree-based search degrades toward brute force), but that&rsquo;s a symptom, not the cause. Even if you <em>could</em> find the nearest neighbor instantly, it wouldn&rsquo;t help &mdash; because it&rsquo;s barely closer than the farthest point. The fundamental problem is statistical, not computational.')">The search becomes too computationally expensive</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf2','Correct. Distance concentration means the nearest neighbor is barely closer than the farthest point. The label of your nearest neighbor is not much more informative than a random label. This is a statistical failure, not a computational one &mdash; no amount of clever indexing can fix it.','')">Distances converge &mdash; the nearest neighbor is barely closer than the farthest</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','High dimensions don&rsquo;t make data noisy. The data is what it is. The problem is that Euclidean distance loses its ability to <em>discriminate</em> between near and far points, making distance-based methods unreliable regardless of data quality.')">High-dimensional data becomes too noisy to measure accurately</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; The Cost</span>
+    <h2>The Exponential Tax</h2>
+
+    <p>Suppose you want to maintain a fixed sampling density &mdash; say, 10 points along each axis of your feature space. In 1D, that&rsquo;s 10 points. In 2D: 10<sup>2</sup> = 100. In 3D: 10<sup>3</sup> = 1,000. The pattern is clear: <span class="math">k<sup>d</sup></span> points for <em>k</em> points per axis in <em>d</em> dimensions.</p>
+
+    <p>This is exponential growth in its purest form, and it makes even modest dimensions intractable. At <em>d</em> = 20 with 10 points per axis, you need 10<sup>20</sup> = 100 quintillion points. That&rsquo;s more than the number of seconds since the Big Bang (about 4.3 &times; 10<sup>17</sup>). At <em>d</em> = 80, you need 10<sup>80</sup> &mdash; the estimated number of atoms in the observable universe.<sup><a href="#fn-4" title="Bellman coined the term &ldquo;curse of dimensionality&rdquo; in 1957 when studying dynamic programming. The exponential growth of state spaces made exact solutions infeasible in all but low-dimensional problems.">[4]</a></sup></p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Sampling Calculator</div>
+      <p class="interactive-setup">Choose how many points you want per axis and how many dimensions. Watch the total sample count blow past human-comprehensible milestones.</p>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="slider-group">
+          <span>Points per axis:</span>
+          <input type="range" id="samp-k" min="2" max="20" step="1" value="10" oninput="onSampSlider()">
+          <span class="slider-val" id="samp-k-val">10</span>
+        </div>
+        <div class="slider-group">
+          <span>Dimensions:</span>
+          <input type="range" id="samp-d" min="1" max="100" step="1" value="3" oninput="onSampSlider()">
+          <span class="slider-val" id="samp-d-val">3</span>
+        </div>
+      </div>
+      <div class="sampling-readout" id="samp-readout">
+        1,000 points
+        <span class="comparison"></span>
+      </div>
+    </div>
+
+    <p>The tax is not optional. If you need local information &mdash; density estimates, nearest-neighbor decisions, kernel evaluations &mdash; you need enough data to fill the space. And in high dimensions, "enough" quickly exceeds the physical limits of the universe. This is why methods that work beautifully on 5-feature datasets collapse silently on 500-feature ones. The space is too vast and the data too sparse.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>The exponential tax applies to <em>uniform</em> coverage of the space. If the data lies on a lower-dimensional structure (a manifold, a cluster, a subspace), you don&rsquo;t need to fill the entire ambient space &mdash; only the structure the data actually occupies. This is the loophole that saves us. We&rsquo;ll get to it in Section VII.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Canary</span>
+    <h2>The Fall of Nearest Neighbors</h2>
+
+    <p>The <em>k</em>-nearest neighbors algorithm is the canary in the coal mine. It makes the fewest assumptions of any classifier: to label a new point, find the <em>k</em> closest training points and take a majority vote. No model, no parameters, no training phase. Just distance and counting.</p>
+
+    <p>This simplicity makes it the first casualty of the curse. When distances concentrate, the "nearest" neighbors are barely nearer than random points, and their votes become unreliable. You can see this directly: take a clean 2D classification problem (two Gaussian clusters), then add noise dimensions &mdash; random features that carry zero signal. Each noise dimension dilutes the signal in the distance calculation.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; k-NN Under the Curse</div>
+      <p class="interactive-setup">Two Gaussian clusters live in the first 2 dimensions. The slider adds noise dimensions (random, uncorrelated with the label). Watch accuracy degrade from ~95% toward coin-flip.</p>
+      <canvas id="knn-canvas" height="240"></canvas>
+      <div class="knn-stats" id="knn-stats">Accuracy: 95.2% | Signal dims: 2 | Noise dims: 0 | Total: 2</div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Noise dimensions:</span>
+          <input type="range" id="knn-noise" min="0" max="100" step="1" value="0" oninput="onKnnNoise(this.value)">
+          <span class="slider-val" id="knn-noise-val">0</span>
+        </div>
+      </div>
+    </div>
+
+    <p>The degradation is smooth and relentless. At 0 noise dimensions, accuracy is around 95%. At 20 noise dimensions, it&rsquo;s fallen below 80%. By 100 noise dimensions, the two signal dimensions are drowned in noise, and the classifier is barely better than guessing. The signal was always there &mdash; the same two informative features, unchanged &mdash; but the distance metric can no longer find it through the noise.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>Adding uninformative features doesn&rsquo;t just fail to help &mdash; it actively <em>harms</em> distance-based methods. Each noise dimension contributes random variation to every distance computation, eventually overwhelming the signal from the informative features. This is why feature selection and dimensionality reduction aren&rsquo;t luxuries. They&rsquo;re prerequisites for local methods to function.</p>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">You have a working k-NN classifier with 10 real features achieving 92% accuracy. A colleague suggests adding 40 features from a loosely related dataset. What happens?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','More features can help if they carry signal. But &ldquo;loosely related&rdquo; means mostly noise. For k-NN, those 40 noisy dimensions will dominate the distance calculations, drowning the 10 informative features. Unlike a regularized model that can learn to ignore irrelevant features, k-NN treats all dimensions equally.')">Accuracy improves &mdash; more features means more information</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf3','Correct. The 40 noisy features will dominate Euclidean distance, drowning the signal from the 10 informative features. k-NN has no mechanism to weight features by relevance &mdash; every dimension contributes equally to distance. This is the curse in practice: more dimensions means more noise in the distance metric, and k-NN is uniquely vulnerable.','')">Accuracy drops significantly &mdash; noise dimensions drown the signal</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','It won&rsquo;t stay the same either. k-NN computes distance using <em>all</em> features. If 40 of 50 features are noisy, they contribute 80% of the distance variance while carrying 0% of the label signal. The nearest neighbor in 50D may be a completely different point than the nearest neighbor in the original 10D.')">Accuracy stays about the same &mdash; k-NN ignores irrelevant features</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <p>It&rsquo;s not just k-NN. Kernel density estimation, radial basis function networks, and any method that defines "locality" through Euclidean distance suffers the same fate. The curse doesn&rsquo;t single out a particular algorithm &mdash; it undermines the very concept of nearness that these methods depend on.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; The Way Out</span>
+    <h2>The Escape</h2>
+
+    <p>If real data actually filled its ambient space uniformly, the curse would be fatal. A 784-dimensional image (28&times;28 pixels, like MNIST) would need a dataset larger than the atoms in billions of universes to achieve reasonable sampling density. No amount of algorithmic cleverness would help.</p>
+
+    <p>But real data doesn&rsquo;t fill its ambient space. It lies on or near <strong>low-dimensional manifolds</strong> &mdash; thin, curved surfaces embedded in the high-dimensional space. MNIST digits are 784-dimensional vectors, but the actual set of images that look like handwritten digits occupies a manifold of roughly 10&ndash;15 dimensions.<sup><a href="#fn-5" title="The manifold hypothesis has deep empirical support. See Fefferman, Mitter, and Narayanan (2016), &ldquo;Testing the Manifold Hypothesis.&rdquo; Estimated intrinsic dimensionality of MNIST is 10&ndash;14 depending on the method.">[5]</a></sup> The other 770 dimensions are constrained &mdash; pixel correlations, stroke physics, the anatomy of human hands &mdash; and carry almost no independent variation.</p>
+
+    <p>This is the <strong>manifold hypothesis</strong>: real-world high-dimensional data (images, text, audio, biological sequences) concentrates near low-dimensional structures. The ambient space is vast, but the data doesn&rsquo;t use most of it.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The curse is a statement about the geometry of high-dimensional <em>spaces</em>. The escape is a statement about the geometry of high-dimensional <em>data</em>. Spaces are cursed. Data, because it has structure, often is not.</p>
+    </div>
+
+    <p>This is where dimensionality reduction transforms from a convenience into a survival strategy. Techniques like PCA, t-SNE, UMAP, and autoencoders don&rsquo;t just make data easier to visualize &mdash; they strip away the empty dimensions, projecting data onto or near the manifold it actually occupies. In that lower-dimensional space, distances become meaningful again, neighborhoods become real, and local methods recover their power.</p>
+
+    <p>If you read <a href="../autoencoders/index.html" style="color:var(--blue);">our first explainer</a>, you saw an autoencoder compress 64-pixel drawings through a narrow bottleneck and reconstruct them. Now you can see why that works: the bottleneck dimension doesn&rsquo;t need to match the input dimension. It needs to match the <em>manifold</em> dimension &mdash; the number of independent degrees of freedom in the data. An autoencoder with a 10-dimensional bottleneck on 784-dimensional MNIST inputs isn&rsquo;t throwing away 774 dimensions of information. It&rsquo;s throwing away 774 dimensions of <em>redundancy</em>.</p>
+
+    <p>The Johnson&ndash;Lindenstrauss lemma formalizes a related miracle: you can project <em>n</em> points from arbitrarily high dimensions down to <span class="math">O(log n / &epsilon;&sup2;)</span> dimensions while preserving all pairwise distances to within a factor of (1 &plusmn; &epsilon;).<sup><a href="#fn-6" title="Johnson and Lindenstrauss (1984). A random linear projection suffices &mdash; you don&rsquo;t even need to look at the data. For 1 million points with &epsilon; = 0.1, about 1,000 dimensions suffice regardless of the original dimensionality.">[6]</a></sup> For a million points, roughly 1,000 dimensions suffice regardless of whether you started in 10,000D or 10,000,000D. The curse applies to the space, but the data carries its own, much lower, effective dimensionality.</p>
+
+    <h3>Why this matters</h3>
+
+    <p>Our spatial intuition &mdash; the sense that a sphere fills its cube, that nearby things are more similar, that sampling a space is straightforward &mdash; is a product of evolution in three dimensions. The curse of dimensionality is mathematics informing us that this intuition does not generalize. High-dimensional geometry is fundamentally alien: volumes concentrate in corners, spheres become hollow shells, and the very concept of distance loses its discriminative power.</p>
+
+    <p>The escape is <em>structure</em>. Real data doesn&rsquo;t respect the ambient space &mdash; it lives on low-dimensional surfaces carved by the physical processes that generated it. Every successful machine learning method for high-dimensional data, whether it knows it or not, is exploiting this structure. Neural networks learn representations that compress data onto its intrinsic manifold. Tree-based methods partition the space along the axes that matter. Regularization penalizes the model for using more capacity than the data justifies.</p>
+
+    <p>The curse tells you what goes wrong. The manifold hypothesis tells you why it can be fixed.<sup><a href="#fn-7" title="The sphere-packing paradox connects back to Section I: at d &ge; 10, the inscribed sphere of a hypercube arrangement actually extends outside the hypercube, a geometric impossibility in low dimensions that further illustrates how alien high-dimensional geometry becomes.">[7]</a></sup></p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+
+      <div class="footnote" id="fn-1">
+        <span class="fn-num">[1]</span>
+        <span>The volume of a unit <em>d</em>-dimensional sphere is V(<em>d</em>) = &pi;<sup><em>d</em>/2</sup> / &Gamma;(<em>d</em>/2 + 1), where &Gamma; is the Gamma function. The volume of the enclosing hypercube (side 2) is 2<sup><em>d</em></sup>. Their ratio, &pi;<sup><em>d</em>/2</sup> / (2<sup><em>d</em></sup> &middot; &Gamma;(<em>d</em>/2 + 1)), decreases super-exponentially with <em>d</em>.</span>
+      </div>
+
+      <div class="footnote" id="fn-2">
+        <span class="fn-num">[2]</span>
+        <span>For a <em>d</em>-dimensional standard Gaussian, the squared distance from the mean follows a &chi;&sup2; distribution with <em>d</em> degrees of freedom. The expected distance grows as &radic;<em>d</em>, while the standard deviation of that distance grows as 1/&radic;2 &mdash; meaning the distribution of distances becomes increasingly concentrated around &radic;<em>d</em> as <em>d</em> grows. The mode of the density is at the origin, but almost no probability mass is near it.</span>
+      </div>
+
+      <div class="footnote" id="fn-3">
+        <span class="fn-num">[3]</span>
+        <span>Beyer, K., Goldstein, J., Ramakrishnan, R., and Shaft, U. (1999). "When Is &lsquo;Nearest Neighbor&rsquo; Meaningful?" <em>Proceedings of the 7th International Conference on Database Theory</em>. They proved that under broad conditions on the data distribution, the ratio (dist<sub>max</sub> &minus; dist<sub>min</sub>) / dist<sub>min</sub> &rarr; 0 as <em>d</em> &rarr; &infin;.</span>
+      </div>
+
+      <div class="footnote" id="fn-4">
+        <span class="fn-num">[4]</span>
+        <span>Bellman, R. (1957). <em>Dynamic Programming</em>. Princeton University Press. The term "curse of dimensionality" appears in the context of discrete optimization: the number of states in a dynamic programming table grows exponentially with the number of state variables, making exact solutions infeasible for all but the lowest-dimensional problems.</span>
+      </div>
+
+      <div class="footnote" id="fn-5">
+        <span class="fn-num">[5]</span>
+        <span>Fefferman, C., Mitter, S., and Narayanan, H. (2016). "Testing the Manifold Hypothesis." <em>Journal of the American Mathematical Society</em>. Estimated intrinsic dimensionalities: MNIST &asymp; 10&ndash;14, natural images &asymp; 100&ndash;200 (far below their pixel count), protein structures &asymp; 10&ndash;30 per domain.</span>
+      </div>
+
+      <div class="footnote" id="fn-6">
+        <span class="fn-num">[6]</span>
+        <span>Johnson, W. B. and Lindenstrauss, J. (1984). "Extensions of Lipschitz mappings into a Hilbert space." The lemma guarantees that a random linear projection into O(log <em>n</em> / &epsilon;&sup2;) dimensions preserves all pairwise distances within (1 &plusmn; &epsilon;). This is remarkable because the target dimension depends only on the number of points and the tolerance, not on the original dimensionality.</span>
+      </div>
+
+      <div class="footnote" id="fn-7">
+        <span class="fn-num">[7]</span>
+        <span>The sphere-packing paradox: arrange 2<sup><em>d</em></sup> unit spheres at the corners of a hypercube, then place a sphere in the center tangent to all of them. In <em>d</em> &ge; 10, this inner sphere extends outside the hypercube &mdash; a geometric impossibility in 2D or 3D. This is yet another manifestation of high-dimensional geometry defying low-dimensional intuition.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type, dur, vol) {
+  type = type || 'sine'; dur = dur || 0.12; vol = vol || 0.06;
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing) {
+  spacing = spacing || 70;
+  freqs.forEach(function(f, i) { setTimeout(function() { tone(f, 'sine', 0.25, 0.05); }, i * spacing); });
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  var parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(function(o) { o.disabled = true; });
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  var fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// FOOTNOTE SCROLL
+// ═══════════════════════════════════════
+document.querySelectorAll('sup a').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+});
+
+// ═══════════════════════════════════════
+// SEEDED PRNG (mulberry32)
+// ═══════════════════════════════════════
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ═══════════════════════════════════════
+// LOG-GAMMA (Lanczos approximation)
+// ═══════════════════════════════════════
+function logGamma(x) {
+  if (x <= 0) return Infinity;
+  if (x < 0.5) {
+    return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGamma(1 - x);
+  }
+  x -= 1;
+  var g = 7;
+  var c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+           771.32342877765313, -176.61502916214059, 12.507343278686905,
+           -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  var sum = c[0];
+  for (var i = 1; i < g + 2; i++) {
+    sum += c[i] / (x + i);
+  }
+  var t = x + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(sum);
+}
+
+// ═══════════════════════════════════════
+// SPHERE VOLUME RATIO
+// ═══════════════════════════════════════
+function logSphereVolRatio(d) {
+  // log10 of V_sphere / V_cube = log10( pi^(d/2) / (Gamma(d/2+1) * 2^d) )
+  var logRatio = (d / 2) * Math.log(Math.PI) - logGamma(d / 2 + 1) - d * Math.log(2);
+  return logRatio / Math.LN10; // convert to log10
+}
+
+function sphereVolRatio(d) {
+  var log10 = logSphereVolRatio(d);
+  if (log10 < -300) return 0;
+  return Math.pow(10, log10);
+}
+
+// ═══════════════════════════════════════
+// DEMO 1: Vanishing Sphere
+// ═══════════════════════════════════════
+(function() {
+  var c = document.getElementById('sphere-canvas');
+  var ctx = c.getContext('2d');
+  var H_PX = 260;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('sphere-dim').value));
+  }
+
+  function draw(curDim) {
+    var W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    var pad = { l: 55, r: 20, t: 20, b: 40 };
+    var gw = W - pad.l - pad.r;
+    var gh = H_PX - pad.t - pad.b;
+
+    // Y axis: log10 of ratio, from 0 to -80
+    var yMin = -80, yMax = 0;
+    function px(d) { return pad.l + (d - 2) / (200 - 2) * gw; }
+    function py(log10val) { return pad.t + (1 - (log10val - yMin) / (yMax - yMin)) * gh; }
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (var yTick = 0; yTick >= yMin; yTick -= 10) {
+      var yy = py(yTick);
+      ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(pad.l + gw, yy); ctx.stroke();
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'right';
+      ctx.fillText('10^' + yTick, pad.l - 6, yy + 3);
+    }
+
+    // X axis ticks
+    [2, 20, 50, 100, 150, 200].forEach(function(d) {
+      var xx = px(d);
+      ctx.beginPath(); ctx.moveTo(xx, pad.t + gh); ctx.lineTo(xx, pad.t + gh + 4); ctx.stroke();
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+      ctx.fillText(d, xx, pad.t + gh + 16);
+    });
+
+    // Axis labels
+    ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Dimensions', pad.l + gw / 2, pad.t + gh + 32);
+
+    ctx.save(); ctx.translate(10, pad.t + gh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Sphere / Cube volume ratio', 0, 0); ctx.restore();
+
+    // Plot the curve up to curDim
+    ctx.beginPath();
+    var first = true;
+    for (var d = 2; d <= curDim; d++) {
+      var log10 = logSphereVolRatio(d);
+      var clampedLog = Math.max(yMin, Math.min(yMax, log10));
+      if (first) { ctx.moveTo(px(d), py(clampedLog)); first = false; }
+      else ctx.lineTo(px(d), py(clampedLog));
+    }
+    ctx.strokeStyle = '#c4622d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw the rest faded
+    if (curDim < 200) {
+      ctx.beginPath();
+      var log10c = logSphereVolRatio(curDim);
+      ctx.moveTo(px(curDim), py(Math.max(yMin, Math.min(yMax, log10c))));
+      for (var d2 = curDim + 1; d2 <= 200; d2++) {
+        var lv = logSphereVolRatio(d2);
+        ctx.lineTo(px(d2), py(Math.max(yMin, Math.min(yMax, lv))));
+      }
+      ctx.strokeStyle = 'rgba(196,98,45,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Current point
+    var curLog = logSphereVolRatio(curDim);
+    var dotY = py(Math.max(yMin, Math.min(yMax, curLog)));
+    ctx.beginPath(); ctx.arc(px(curDim), dotY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 8;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    // Readout
+    var ratio = sphereVolRatio(curDim);
+    var readout = document.getElementById('sphere-readout');
+    if (ratio > 0.001) {
+      readout.innerHTML = (ratio * 100).toFixed(2) + '%<span class="label">sphere fills this much of the cube</span>';
+    } else if (curLog > -300) {
+      var exp = Math.floor(curLog);
+      var mantissa = Math.pow(10, curLog - exp);
+      readout.innerHTML = mantissa.toFixed(2) + ' &times; 10<sup>' + exp + '</sup><span class="label">sphere-to-cube volume ratio</span>';
+    } else {
+      readout.innerHTML = '&asymp; 0<span class="label">ratio has ' + Math.abs(Math.round(curLog)) + '+ zeros after decimal</span>';
+    }
+  }
+
+  window.onSphereDim = function(v) {
+    v = parseInt(v);
+    document.getElementById('sphere-dim-val').textContent = v;
+    tone(200 + v * 2, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 2: Distance Histogram
+// ═══════════════════════════════════════
+(function() {
+  var c = document.getElementById('hist-canvas');
+  var ctx = c.getContext('2d');
+  var H_PX = 240;
+  var N_POINTS = 2000;
+  var rng = mulberry32(42);
+
+  // Pre-generate uniform random coordinates for max dimension
+  var MAX_D = 100;
+  var coords = [];
+  for (var i = 0; i < N_POINTS; i++) {
+    var pt = [];
+    for (var j = 0; j < MAX_D; j++) pt.push(rng());
+    coords.push(pt);
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('hist-dim').value));
+  }
+
+  function draw(dim) {
+    var W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    // Compute distances from center (0.5, 0.5, ...)
+    var distances = [];
+    var insideCount = 0;
+    for (var i = 0; i < N_POINTS; i++) {
+      var sumSq = 0;
+      for (var j = 0; j < dim; j++) {
+        var diff = coords[i][j] - 0.5;
+        sumSq += diff * diff;
+      }
+      var dist = Math.sqrt(sumSq);
+      distances.push(dist);
+      if (dist <= 0.5) insideCount++;
+    }
+
+    // Build histogram
+    var maxDist = Math.sqrt(dim) * 0.5; // max possible distance
+    var nBins = 40;
+    var binWidth = maxDist / nBins;
+    var bins = new Array(nBins).fill(0);
+    for (var i = 0; i < distances.length; i++) {
+      var b = Math.min(nBins - 1, Math.floor(distances[i] / binWidth));
+      bins[b]++;
+    }
+    var maxBin = Math.max.apply(null, bins);
+    if (maxBin === 0) maxBin = 1;
+
+    var pad = { l: 40, r: 15, t: 15, b: 40 };
+    var gw = W - pad.l - pad.r;
+    var gh = H_PX - pad.t - pad.b;
+
+    // Draw bars
+    var barW = gw / nBins;
+    for (var i = 0; i < nBins; i++) {
+      var barH = (bins[i] / maxBin) * gh;
+      var x = pad.l + i * barW;
+      var y = pad.t + gh - barH;
+      ctx.fillStyle = 'rgba(196,98,45,0.6)';
+      ctx.fillRect(x + 1, y, barW - 2, barH);
+    }
+
+    // Sphere boundary line (r = 0.5)
+    var sphereX = pad.l + (0.5 / maxDist) * gw;
+    if (sphereX >= pad.l && sphereX <= pad.l + gw) {
+      ctx.beginPath();
+      ctx.moveTo(sphereX, pad.t);
+      ctx.lineTo(sphereX, pad.t + gh);
+      ctx.strokeStyle = '#c0392b';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#c0392b';
+      ctx.font = "9px 'DM Mono'";
+      ctx.textAlign = 'center';
+      ctx.fillText('r = 0.5', sphereX, pad.t - 4);
+    }
+
+    // X axis labels
+    var nLabels = 5;
+    for (var i = 0; i <= nLabels; i++) {
+      var val = (maxDist * i / nLabels);
+      var xx = pad.l + (i / nLabels) * gw;
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+      ctx.fillText(val.toFixed(1), xx, pad.t + gh + 16);
+    }
+
+    ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Distance from center', pad.l + gw / 2, pad.t + gh + 32);
+
+    var pctInside = Math.round(insideCount / N_POINTS * 100);
+    document.getElementById('hist-info').textContent = 'Inside sphere: ' + pctInside + '%';
+  }
+
+  window.onHistDim = function(v) {
+    v = parseInt(v);
+    document.getElementById('hist-dim-val').textContent = v;
+    tone(200 + v * 3, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 3: Hollow Sphere
+// ═══════════════════════════════════════
+(function() {
+  var c = document.getElementById('shell-canvas');
+  var ctx = c.getContext('2d');
+  var H_PX = 280;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    var dim = parseInt(document.getElementById('shell-dim').value);
+    var eps = parseFloat(document.getElementById('shell-eps').value);
+
+    var W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    var cx = W / 2;
+    var cy = H_PX / 2;
+    var R = Math.min(cx - 30, cy - 20);
+
+    // Draw outer circle (full sphere)
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(196,98,45,0.15)';
+    ctx.fill();
+    ctx.strokeStyle = '#c4622d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Draw inner circle (core)
+    var innerR = R * (1 - eps);
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    ctx.strokeStyle = '#e2dfd8';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Label the shell
+    ctx.fillStyle = '#c4622d';
+    ctx.font = "10px 'DM Mono'";
+    ctx.textAlign = 'center';
+    ctx.fillText('shell', cx + (R + innerR) / 2 * 0.7, cy - (R + innerR) / 2 * 0.7 + 4);
+
+    // Label the core
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "10px 'DM Mono'";
+    ctx.textAlign = 'center';
+    ctx.fillText('core', cx, cy + 4);
+
+    // Radius annotations
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R, cy);
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "8px 'DM Mono'";
+    ctx.textAlign = 'center';
+    ctx.fillText('R', cx + R / 2, cy - 6);
+    ctx.fillText('(1\u2212\u03b5)R', cx + innerR / 2, cy + 14);
+
+    // Compute shell fraction
+    var shellFrac = 1 - Math.pow(1 - eps, dim);
+    var pct = (shellFrac * 100);
+
+    var readout = document.getElementById('shell-readout');
+    if (pct > 99.999) {
+      readout.innerHTML = '&gt; 99.999%<span class="label">of volume in outer shell</span>';
+    } else {
+      readout.innerHTML = pct.toFixed(1) + '%<span class="label">of volume in outer shell</span>';
+    }
+  }
+
+  window.onShellDim = function() {
+    var dim = parseInt(document.getElementById('shell-dim').value);
+    var eps = parseFloat(document.getElementById('shell-eps').value);
+    document.getElementById('shell-dim-val').textContent = dim;
+    document.getElementById('shell-eps-val').textContent = Math.round(eps * 100) + '%';
+    tone(200 + dim * 2, 'triangle', 0.08, 0.04);
+    draw();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 4: Distance Concentration
+// ═══════════════════════════════════════
+(function() {
+  var c = document.getElementById('dist-canvas');
+  var ctx = c.getContext('2d');
+  var H_PX = 240;
+  var N_PTS = 50;
+  var MAX_D = 500;
+  var rng = mulberry32(123);
+
+  // Pre-generate points
+  var pts = [];
+  for (var i = 0; i < N_PTS; i++) {
+    var pt = [];
+    for (var j = 0; j < MAX_D; j++) pt.push(rng());
+    pts.push(pt);
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('dist-dim').value));
+  }
+
+  function draw(dim) {
+    var W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    // Compute all pairwise distances
+    var dists = [];
+    for (var i = 0; i < N_PTS; i++) {
+      for (var j = i + 1; j < N_PTS; j++) {
+        var sumSq = 0;
+        for (var k = 0; k < dim; k++) {
+          var diff = pts[i][k] - pts[j][k];
+          sumSq += diff * diff;
+        }
+        dists.push(Math.sqrt(sumSq));
+      }
+    }
+
+    var minDist = Math.min.apply(null, dists);
+    var maxDist = Math.max.apply(null, dists);
+    var ratio = maxDist / minDist;
+
+    // Build histogram
+    var nBins = 40;
+    var histMin = 0;
+    var histMax = Math.sqrt(dim) * 1.0; // theoretical max for unit cube
+    if (histMax < maxDist) histMax = maxDist * 1.1;
+    var binWidth = (histMax - histMin) / nBins;
+    var bins = new Array(nBins).fill(0);
+    for (var i = 0; i < dists.length; i++) {
+      var b = Math.min(nBins - 1, Math.floor((dists[i] - histMin) / binWidth));
+      bins[b]++;
+    }
+    var maxBin = Math.max.apply(null, bins);
+    if (maxBin === 0) maxBin = 1;
+
+    var pad = { l: 40, r: 15, t: 15, b: 40 };
+    var gw = W - pad.l - pad.r;
+    var gh = H_PX - pad.t - pad.b;
+
+    // Draw bars
+    var barW = gw / nBins;
+    for (var i = 0; i < nBins; i++) {
+      var barH = (bins[i] / maxBin) * gh;
+      var x = pad.l + i * barW;
+      var y = pad.t + gh - barH;
+      ctx.fillStyle = 'rgba(42,93,176,0.6)';
+      ctx.fillRect(x + 1, y, barW - 2, barH);
+    }
+
+    // X axis labels
+    var nLabels = 5;
+    for (var i = 0; i <= nLabels; i++) {
+      var val = histMin + (histMax - histMin) * i / nLabels;
+      var xx = pad.l + (i / nLabels) * gw;
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+      ctx.fillText(val.toFixed(1), xx, pad.t + gh + 16);
+    }
+
+    ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Pairwise Euclidean distance', pad.l + gw / 2, pad.t + gh + 32);
+
+    document.getElementById('dist-ratio').textContent = 'Max/Min: ' + ratio.toFixed(1);
+  }
+
+  window.onDistDim = function(v) {
+    v = parseInt(v);
+    document.getElementById('dist-dim-val').textContent = v;
+    tone(200 + v * 0.8, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 5: Sampling Calculator
+// ═══════════════════════════════════════
+(function() {
+  window.onSampSlider = function() {
+    var k = parseInt(document.getElementById('samp-k').value);
+    var d = parseInt(document.getElementById('samp-d').value);
+    document.getElementById('samp-k-val').textContent = k;
+    document.getElementById('samp-d-val').textContent = d;
+
+    var logTotal = d * Math.log10(k);
+    var readout = document.getElementById('samp-readout');
+
+    var comparison = '';
+    if (logTotal < 6) {
+      var total = Math.pow(k, d);
+      readout.innerHTML = total.toLocaleString() + ' points<span class="comparison">' + comparison + '</span>';
+    } else {
+      // Format as 10^n
+      var exp = Math.floor(logTotal);
+      var mantissa = Math.pow(10, logTotal - exp);
+
+      if (logTotal < 10) comparison = 'Population of Earth: ~10^10';
+      else if (logTotal < 18) comparison = 'Seconds since Big Bang: ~4.3 \u00d7 10^17';
+      else if (logTotal < 24) comparison = 'Stars in observable universe: ~10^24';
+      else if (logTotal < 50) comparison = 'Atoms in the Earth: ~10^50';
+      else if (logTotal < 80) comparison = 'Atoms in the observable universe: ~10^80';
+      else if (logTotal < 120) comparison = 'Planck volumes in the universe: ~10^185';
+      else comparison = 'Beyond any physical quantity';
+
+      readout.innerHTML = mantissa.toFixed(1) + ' &times; 10<sup>' + exp + '</sup> points<span class="comparison">' + comparison + '</span>';
+    }
+
+    tone(200 + d * 3, 'triangle', 0.08, 0.04);
+  };
+
+  // Initialize
+  onSampSlider();
+})();
+
+// ═══════════════════════════════════════
+// DEMO 6: k-NN Accuracy Curve
+// ═══════════════════════════════════════
+(function() {
+  var c = document.getElementById('knn-canvas');
+  var ctx = c.getContext('2d');
+  var H_PX = 240;
+
+  // Precompute k-NN accuracy for each noise level
+  var rng = mulberry32(777);
+  var N_TRAIN = 200;
+  var N_TEST = 100;
+  var MAX_NOISE = 100;
+  var K = 5;
+
+  // Generate 2D Gaussian clusters
+  function gaussRand(r) {
+    var u1 = r(), u2 = r();
+    return Math.sqrt(-2 * Math.log(u1 + 1e-10)) * Math.cos(2 * Math.PI * u2);
+  }
+
+  // Training data: class 0 centered at (-1,0), class 1 at (1,0)
+  var trainX = [], trainY = [];
+  for (var i = 0; i < N_TRAIN; i++) {
+    var label = i < N_TRAIN / 2 ? 0 : 1;
+    var cx = label === 0 ? -1 : 1;
+    trainX.push([cx + gaussRand(rng) * 0.7, gaussRand(rng) * 0.7]);
+    trainY.push(label);
+  }
+
+  var testX = [], testY = [];
+  for (var i = 0; i < N_TEST; i++) {
+    var label = i < N_TEST / 2 ? 0 : 1;
+    var cx = label === 0 ? -1 : 1;
+    testX.push([cx + gaussRand(rng) * 0.7, gaussRand(rng) * 0.7]);
+    testY.push(label);
+  }
+
+  // Pre-generate noise dimensions
+  var trainNoise = [], testNoise = [];
+  for (var i = 0; i < N_TRAIN; i++) {
+    var n = [];
+    for (var j = 0; j < MAX_NOISE; j++) n.push(gaussRand(rng) * 0.7);
+    trainNoise.push(n);
+  }
+  for (var i = 0; i < N_TEST; i++) {
+    var n = [];
+    for (var j = 0; j < MAX_NOISE; j++) n.push(gaussRand(rng) * 0.7);
+    testNoise.push(n);
+  }
+
+  // Compute accuracy for each noise level
+  var accuracies = [];
+  for (var noiseDims = 0; noiseDims <= MAX_NOISE; noiseDims++) {
+    var correct = 0;
+    for (var ti = 0; ti < N_TEST; ti++) {
+      // Compute distances to all training points
+      var dists = [];
+      for (var tr = 0; tr < N_TRAIN; tr++) {
+        var d2 = 0;
+        // Signal dimensions
+        for (var f = 0; f < 2; f++) {
+          var diff = testX[ti][f] - trainX[tr][f];
+          d2 += diff * diff;
+        }
+        // Noise dimensions
+        for (var f = 0; f < noiseDims; f++) {
+          var diff = testNoise[ti][f] - trainNoise[tr][f];
+          d2 += diff * diff;
+        }
+        dists.push({ d: d2, label: trainY[tr] });
+      }
+      dists.sort(function(a, b) { return a.d - b.d; });
+      // k-NN vote
+      var votes = [0, 0];
+      for (var ki = 0; ki < K; ki++) votes[dists[ki].label]++;
+      var pred = votes[1] > votes[0] ? 1 : 0;
+      if (pred === testY[ti]) correct++;
+    }
+    accuracies.push(correct / N_TEST);
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseInt(document.getElementById('knn-noise').value));
+  }
+
+  function draw(noiseDims) {
+    var W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    var pad = { l: 50, r: 20, t: 15, b: 40 };
+    var gw = W - pad.l - pad.r;
+    var gh = H_PX - pad.t - pad.b;
+
+    function px(nd) { return pad.l + (nd / MAX_NOISE) * gw; }
+    function py(acc) { return pad.t + (1 - (acc - 0.4) / (1.0 - 0.4)) * gh; }
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach(function(v) {
+      var yy = py(v);
+      ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(pad.l + gw, yy); ctx.stroke();
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'right';
+      ctx.fillText((v * 100).toFixed(0) + '%', pad.l - 6, yy + 3);
+    });
+
+    // 50% baseline (random guess)
+    var y50 = py(0.5);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y50);
+    ctx.lineTo(pad.l + gw, y50);
+    ctx.strokeStyle = 'rgba(192,57,43,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#c0392b';
+    ctx.font = "8px 'DM Mono'";
+    ctx.textAlign = 'left';
+    ctx.fillText('random guess', pad.l + 4, y50 - 4);
+
+    // X axis
+    [0, 20, 40, 60, 80, 100].forEach(function(nd) {
+      ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+      ctx.fillText(nd, px(nd), pad.t + gh + 16);
+    });
+    ctx.fillStyle = '#7a7870'; ctx.font = "9px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Noise dimensions added', pad.l + gw / 2, pad.t + gh + 32);
+
+    ctx.save(); ctx.translate(10, pad.t + gh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('k-NN accuracy', 0, 0); ctx.restore();
+
+    // Plot full curve faded
+    ctx.beginPath();
+    for (var i = 0; i <= MAX_NOISE; i++) {
+      var x = px(i), y = py(accuracies[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(196,98,45,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Plot active curve
+    ctx.beginPath();
+    for (var i = 0; i <= noiseDims; i++) {
+      var x = px(i), y = py(accuracies[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#c4622d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Current point
+    ctx.beginPath();
+    ctx.arc(px(noiseDims), py(accuracies[noiseDims]), 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 8;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    var acc = accuracies[noiseDims];
+    document.getElementById('knn-stats').textContent =
+      'Accuracy: ' + (acc * 100).toFixed(1) + '% | Signal dims: 2 | Noise dims: ' + noiseDims + ' | Total: ' + (2 + noiseDims);
+  }
+
+  window.onKnnNoise = function(v) {
+    v = parseInt(v);
+    document.getElementById('knn-noise-val').textContent = v;
+    tone(400 - v * 2, 'triangle', 0.08, 0.04);
+    draw(v);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>
