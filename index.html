@@ -504,6 +504,118 @@ footer {
       </div>
     </div>
   </a>
+
+  <a href="./loss-landscape/index.html" class="explainer-card fade-in">
+    <div class="card-num">04</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-category">Deep Learning</span>
+        <span class="card-dot"></span>
+        <span class="card-date">2026</span>
+        <span class="card-dot"></span>
+        <span class="card-read">~25 min read</span>
+      </div>
+      <div class="card-title">The Loss Landscape &mdash; Why Gradient Descent Has No Business Working</div>
+      <p class="card-desc">
+        Classical optimization says gradient descent should get stuck in local minima. In high dimensions,
+        it almost never does &mdash; because almost all critical points are saddle points. Drop gradient descent
+        balls on a loss surface, watch the saddle-point probability hit 1.0 as dimensions grow, and discover
+        why overparameterized networks generalize when they shouldn&rsquo;t.
+      </p>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag">Optimization</span>
+          <span class="tag">Saddle Points</span>
+          <span class="tag">Generalization</span>
+        </div>
+        <span class="card-arrow">&rarr;</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="./information-theory/index.html" class="explainer-card fade-in">
+    <div class="card-num">05</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-category">Information Theory</span>
+        <span class="card-dot"></span>
+        <span class="card-date">2026</span>
+        <span class="card-dot"></span>
+        <span class="card-read">~24 min read</span>
+      </div>
+      <div class="card-title">Information Theory for ML &mdash; Every Loss Function Is an Encoding Problem</div>
+      <p class="card-desc">
+        Entropy is the average bits needed to encode a message. Cross-entropy is the cost of using the wrong
+        codebook. KL divergence is the wasted bits. Design an encoding, watch the bits accumulate, and discover
+        why minimizing cross-entropy loss is the same as maximizing likelihood &mdash; and why the direction
+        of KL divergence changes everything.
+      </p>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag">Entropy</span>
+          <span class="tag">KL Divergence</span>
+          <span class="tag">Loss Functions</span>
+        </div>
+        <span class="card-arrow">&rarr;</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="./variational-autoencoder/index.html" class="explainer-card fade-in">
+    <div class="card-num">06</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-category">Deep Learning</span>
+        <span class="card-dot"></span>
+        <span class="card-date">2026</span>
+        <span class="card-dot"></span>
+        <span class="card-read">~28 min read</span>
+      </div>
+      <div class="card-title">The Variational Autoencoder &mdash; When Guessing Becomes Generating</div>
+      <p class="card-desc">
+        An autoencoder&rsquo;s latent space is a mess &mdash; you can&rsquo;t sample from it. Add one constraint
+        (a KL penalty forcing the latent space toward a Gaussian) and suddenly you can generate. Build the ELBO
+        derivation brick by brick, see the reparameterization trick route gradients around randomness, and dial
+        the &beta; knob between perfect reconstruction and smooth generation.
+      </p>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag">Generative Models</span>
+          <span class="tag">ELBO</span>
+          <span class="tag">Latent Space</span>
+        </div>
+        <span class="card-arrow">&rarr;</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="./diffusion-models/index.html" class="explainer-card fade-in">
+    <div class="card-num">07</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-category">Generative Models</span>
+        <span class="card-dot"></span>
+        <span class="card-date">2026</span>
+        <span class="card-dot"></span>
+        <span class="card-read">~25 min read</span>
+      </div>
+      <div class="card-title">Diffusion Models &mdash; Learning to Reverse Noise</div>
+      <p class="card-desc">
+        Destroy an image by adding noise until nothing remains. Then train a network to reverse each step.
+        The reason this works is beautiful: predicting noise is secretly learning the score function &mdash;
+        arrows pointing toward data. Watch a score field emerge on a 2D distribution, then follow particles
+        as they navigate from pure chaos back to structure.
+      </p>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag">Score Functions</span>
+          <span class="tag">Denoising</span>
+          <span class="tag">Generation</span>
+        </div>
+        <span class="card-arrow">&rarr;</span>
+      </div>
+    </div>
+  </a>
 </div>
 
 <footer>

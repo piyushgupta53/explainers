@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diffusion Models — Learning to Reverse Noise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
+
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+.demo-controls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.8rem;}
+.demo-status{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.8;}
+.arrow-legend{display:flex;gap:1.5rem;margin-top:.6rem;font-family:'DM Sans',sans-serif;font-size:.75rem;color:var(--muted);}
+.arrow-legend span{display:flex;align-items:center;gap:.3rem;}
+.schedule-compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.8rem;}
+@media(max-width:640px){.schedule-compare{grid-template-columns:1fr;}}
+.schedule-panel{background:white;border:1px solid var(--border);padding:1rem;border-radius:2px;}
+.schedule-panel-title{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Generative Models &middot; 07
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Generative Models</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~28 min read</span>
+    </div>
+    <h1 class="post-title">Diffusion Models &mdash; Learning to Reverse Noise</h1>
+    <p class="post-subtitle">You destroy an image by adding noise until nothing remains. Then you train a network to undo each step. The reason this works is the deepest idea in modern generative modeling.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">Destruction Is Easy</a></li>
+        <li><a href="#s2">The Forward Process</a></li>
+        <li><a href="#s3">Score Functions &mdash; Arrows Toward Data</a></li>
+        <li><a href="#s4">Denoising IS Score Estimation</a></li>
+        <li><a href="#s5">The Reverse Process</a></li>
+        <li><a href="#s6">The Noise Schedule</a></li>
+        <li><a href="#s7">From 2D Toys to Real Images</a></li>
+        <li><a href="#s8">Synthesis</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Obvious Direction</span>
+    <h2>Destruction Is Easy</h2>
+
+    <p>Take any image. Add a tiny amount of Gaussian noise &mdash; just enough to make each pixel shimmer. The image is still recognizable. Now add the same amount of noise again, to the already-noisy result. And again. And again. After 1,000 steps, the image is gone. What remains is pure static: indistinguishable from random numbers drawn from a standard normal distribution.</p>
+
+    <p>This is not a metaphor. It is the literal procedure. Take the pixel values of a photograph of a cat, and at each step, slightly shrink them toward zero while adding fresh Gaussian noise. The shrinking ensures the signal fades; the noise ensures the result stays random. After enough steps, the cat, the background, the lighting, the texture of the fur &mdash; all of it has dissolved into a featureless hiss. Every image in existence, subjected to this process, arrives at the same destination: <span class="math">N(0, I)</span>.</p>
+
+    <p>Destruction requires no learning, no parameters, no intelligence. A for-loop and a random number generator will do it. The question that launched an entire field of generative modeling is the reverse: <em>can you learn to undo it?</em></p>
+
+    <p>Given pure noise &mdash; a grid of random numbers &mdash; can a neural network figure out what single small step of de-noising would make it slightly less random? And then another step? And another, for 1,000 steps, until a coherent image emerges from nothing?</p>
+
+    <p>This sounds like it should not work. Noise destroys information. The second law of thermodynamics runs in one direction. You cannot unscramble an egg. But diffusion models do exactly this &mdash; and the reason they succeed reveals something profound about the relationship between noise, probability, and structure. It starts with a field of arrows.</p>
+
+    <!-- Demo 1: Forward Process -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Forward Process</div>
+      <p class="interactive-setup">Three clusters of points represent a simple data distribution. Drag the slider to add noise step by step, or press Play to watch structure dissolve into chaos. Watch how quickly the clusters become indistinguishable.</p>
+      <canvas id="cvForward" height="360"></canvas>
+      <div class="demo-controls">
+        <div class="slider-group">
+          <span>Timestep t:</span>
+          <input type="range" id="fwdSlider" min="0" max="100" value="0" oninput="onFwdSlider(this.value)">
+          <span class="slider-val" id="fwdVal">0</span>
+        </div>
+        <button class="btn primary" id="fwdPlayBtn" onclick="toggleFwdPlay()">&#9654; Play</button>
+        <button class="btn" onclick="resetFwd()">&#8634; Reset</button>
+      </div>
+      <div class="demo-status" id="fwdStatus">t = 0: Clean data. Three distinct clusters.</div>
+    </div>
+
+    <p>Notice the asymmetry. Sliding from left to right &mdash; from clean data to noise &mdash; takes no skill. Each step is trivially computed: multiply by a number slightly less than 1, add a little randomness. But if you tried to slide from right to left, starting from pure noise, you would have no idea which direction to go. The noise contains no arrows, no hints, no memory of the structure it destroyed. Or does it?</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; Formalizing Destruction</span>
+    <h2>The Forward Process</h2>
+
+    <p>Before we can reverse anything, we need to be precise about what &ldquo;adding noise&rdquo; means mathematically. The forward process is a <strong>Markov chain</strong>: a sequence of steps where each step depends only on the previous one. We start with a data point <span class="math">x<sub>0</sub></span> drawn from the real data distribution and produce a sequence <span class="math">x<sub>1</sub>, x<sub>2</sub>, &hellip;, x<sub>T</sub></span> of progressively noisier versions.</p>
+
+    <p>At each step <em>t</em>, we apply a simple rule:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Forward Step</span>
+      <div>q(x<sub>t</sub> | x<sub>t&minus;1</sub>) = N(x<sub>t</sub>; &radic;(1 &minus; &beta;<sub>t</sub>) &middot; x<sub>t&minus;1</sub>, &beta;<sub>t</sub> &middot; I)</div>
+      <span class="comment">&mdash; scale the previous point by &radic;(1 &minus; &beta;<sub>t</sub>) and add Gaussian noise with variance &beta;<sub>t</sub></span>
+    </div>
+
+    <p>The symbol <span class="math">&beta;<sub>t</sub></span> is the <strong>noise schedule</strong> &mdash; a small positive number (typically between 10<sup>&minus;4</sup> and 0.02) that controls how much noise we inject at step <em>t</em>. The factor <span class="math">&radic;(1 &minus; &beta;<sub>t</sub>)</span> shrinks the signal slightly, so the total variance stays controlled. Without this shrinkage, the values would explode.</p>
+
+    <p>A beautiful shortcut: you don&rsquo;t need to iterate all <em>T</em> steps to get <span class="math">x<sub>t</sub></span>. Define <span class="math">&alpha;<sub>t</sub> = 1 &minus; &beta;<sub>t</sub></span> and <span class="math">&alpha;&#772;<sub>t</sub> = &alpha;<sub>1</sub> &middot; &alpha;<sub>2</sub> &middot; &hellip; &middot; &alpha;<sub>t</sub></span> (the cumulative product). Then you can jump directly from <span class="math">x<sub>0</sub></span> to any timestep:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Direct Sampling</span>
+      <div>q(x<sub>t</sub> | x<sub>0</sub>) = N(x<sub>t</sub>; &radic;&alpha;&#772;<sub>t</sub> &middot; x<sub>0</sub>, (1 &minus; &alpha;&#772;<sub>t</sub>) &middot; I)</div>
+      <span class="comment">&mdash; x<sub>t</sub> = &radic;&alpha;&#772;<sub>t</sub> &middot; x<sub>0</sub> + &radic;(1 &minus; &alpha;&#772;<sub>t</sub>) &middot; &epsilon;, where &epsilon; ~ N(0, I)</span>
+    </div>
+
+    <p>In words: <span class="math">x<sub>t</sub></span> is a weighted mix of the original signal <span class="math">x<sub>0</sub></span> and pure noise <span class="math">&epsilon;</span>. The mixing ratio changes with <em>t</em>. At <em>t</em> = 0, the signal dominates. At <em>t</em> = <em>T</em>, the noise has almost entirely replaced the signal &mdash; <span class="math">&alpha;&#772;<sub>T</sub> &approx; 0</span>, so <span class="math">x<sub>T</sub> &approx; &epsilon;</span>.</p>
+
+    <p>Let&rsquo;s assign concrete numbers. A typical schedule for <em>T</em> = 1000 steps uses <span class="math">&beta;<sub>1</sub> = 10<sup>&minus;4</sup></span> and <span class="math">&beta;<sub>T</sub> = 0.02</span>, increasing linearly. By step 200, about 85% of the original signal survives. By step 500, roughly 50%. By step 800, less than 5%. By step 1000, the original is effectively gone.<sup><a href="#fn-2" title="Ho, Jain, and Abbeel (2020) established these default hyperparameters.">[2]</a></sup></p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>The forward process has no learnable parameters. It is entirely determined by the noise schedule {&beta;<sub>1</sub>, &hellip;, &beta;<sub>T</sub>}. All the learning happens in the reverse direction.</p>
+    </div>
+
+    <p>Two things make this process special. First, each step is Gaussian &mdash; so the entire chain is analytically tractable. Second, for small enough <span class="math">&beta;<sub>t</sub></span>, the <em>reverse</em> of each step is also approximately Gaussian.<sup><a href="#fn-3" title="Feller (1949) showed this for diffusion processes; the DDPM paper builds on it.">[3]</a></sup> That second fact is what makes the entire enterprise possible. If the reverse steps were some wild, intractable distribution, we would have no hope of learning them. But they are Gaussian &mdash; and a Gaussian is determined by just its mean and variance. Learn those, and you can run the process backward.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Key Insight</span>
+    <h2>Score Functions &mdash; Arrows Toward Data</h2>
+
+    <p>Forget neural networks for a moment. Forget denoising. Forget images. Consider a simple probability distribution in 2D &mdash; say, three clusters of points, like in our first demo. This distribution has a probability density function <span class="math">p(x)</span>: high where the clusters are, low everywhere else.</p>
+
+    <p>Now take the gradient of the log of that density: <span class="math">&nabla;<sub>x</sub> log p(x)</span>. This is the <strong>score function</strong>. At every point in space, it gives you a vector &mdash; a direction and a magnitude. The direction points toward higher probability. The magnitude tells you how strongly.</p>
+
+    <p>Picture it: a field of arrows overlaid on the plane. Near a cluster, the arrows point inward, pulling toward the center of mass. Far from any cluster, the arrows point toward the nearest one. Between two clusters, there is a boundary where the arrows split, some pointing left, some pointing right. The score function is a map of the probability landscape &mdash; not the landscape itself, but the <em>slope</em> of the landscape at every point.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>If you had the score function &nabla;<sub>x</sub> log p(x) everywhere, you could generate samples by starting at a random point and following the arrows. Each step moves you toward higher probability. After enough steps, you arrive at a sample from the distribution. This is called <strong>Langevin dynamics</strong>, and it is generation by gradient ascent on log-probability.</p>
+    </div>
+
+    <p>Here is why this matters: <em>you do not need to know <span class="math">p(x)</span> itself to follow the arrows.</em> The score function contains all the directional information. It tells you where to go without telling you how high the hill is. For generation, this is everything. You don&rsquo;t need to evaluate the probability of any particular image &mdash; you just need to know which direction &ldquo;more probable&rdquo; is.</p>
+
+    <!-- Demo 2: Score Field Visualization -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Score Field</div>
+      <p class="interactive-setup">Arrows show &nabla;<sub>x</sub> log p(x) for a mixture of three Gaussians. Each arrow points toward higher probability. Click or drag anywhere to drop a particle and watch it follow the arrows toward a data cluster. This <em>is</em> generation.</p>
+      <canvas id="cvScore" height="400"></canvas>
+      <div class="demo-controls">
+        <button class="btn primary" onclick="dropRandomParticle()">&#9654; Drop Random Particle</button>
+        <button class="btn" onclick="dropMultipleParticles()">Drop 20 Particles</button>
+        <button class="btn" onclick="clearScoreParticles()">&#8634; Clear</button>
+      </div>
+      <div class="demo-status" id="scoreStatus">Click anywhere to drop a particle. It will follow the score field toward data.</div>
+    </div>
+
+    <p>There is a problem, though. The score function of the <em>clean</em> data distribution is nearly useless in practice. Data lives on a thin manifold &mdash; a surface of almost zero volume in the full space. Away from data, the density <span class="math">p(x)</span> is essentially zero, and the gradient of log(nearly zero) is undefined or points in essentially random directions. The arrows only exist where data already is. If you start from a random point far from data &mdash; which is exactly what generation requires &mdash; the score function gives you nothing to work with.</p>
+
+    <p>This is where noise comes back.</p>
+
+    <h3>Noise rescues the score</h3>
+
+    <p>When you add Gaussian noise to the data distribution, you <em>smear</em> it. The sharp, thin clusters spread out into soft bumps. The density becomes nonzero everywhere. And the score function &mdash; the arrow field &mdash; becomes well-defined across the entire space.</p>
+
+    <p>More noise means more smearing, which means a simpler, smoother score field. A heavily noised version of our three-cluster distribution has a score field that looks almost like a single gentle funnel pointing toward the center of mass. A lightly noised version has a score field that still resolves the individual clusters, with sharp boundaries between them.</p>
+
+    <!-- Demo 3: Noisy Score Fields -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Noisy Score Fields</div>
+      <p class="interactive-setup">Use the slider to control the noise level. At low noise, the score field has sharp structure &mdash; distinct clusters with clear boundaries. At high noise, it smooths into a simple global pull. This is why multi-scale denoising works: the model captures coarse structure at high noise and fine detail at low noise.</p>
+      <canvas id="cvNoisyScore" height="400"></canvas>
+      <div class="demo-controls">
+        <div class="slider-group">
+          <span>Noise &sigma;:</span>
+          <input type="range" id="noisySigmaSlider" min="0" max="100" value="4" oninput="onNoisySigma(this.value)">
+          <span class="slider-val" id="noisySigmaVal">0.3</span>
+        </div>
+      </div>
+      <div class="demo-status" id="noisyScoreStatus">&sigma; = 0.3: Score field resolves individual clusters with clear boundaries.</div>
+    </div>
+
+    <p>This is the multi-scale trick at the heart of diffusion models. At high noise levels (large <em>t</em>), the score field is smooth, simple, and points toward the broad structure of the data: &ldquo;images exist over here, not over there.&rdquo; At low noise levels (small <em>t</em>), the score field is sharp and detailed: &ldquo;this pixel should be slightly brighter.&rdquo; By learning the score function at <em>every</em> noise level, a diffusion model captures structure at every scale. The coarse strokes and the fine details, all encoded in a single network conditioned on <em>t</em>.</p>
+
+    <!-- Quiz 1 -->
+    <div class="quiz-block">
+      <div class="quiz-q">If you could only evaluate the score function at a single noise level, which would give you the best samples?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf1', 'Correct! You need both scales for good generation.', 'Not quite. With no noise, the score is undefined away from data &mdash; you could never leave your starting point. You need high noise to get the coarse layout and low noise for fine detail. No single level suffices.')">Low noise &mdash; it has the most detailed structure</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf1', 'Correct! You need both scales for good generation.', 'Not quite. High noise gives you a smooth funnel toward the general data region, but everything would look blurry &mdash; you would never resolve fine structure. You need both scales.')">High noise &mdash; it covers the entire space</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf1', 'Correct. No single noise level suffices. High noise is needed to navigate from far away; low noise is needed for fine detail. This is exactly why diffusion models use a schedule of noise levels, not just one.', 'Not quite.')">Neither &mdash; you need multiple noise levels</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Connection</span>
+    <h2>Denoising IS Score Estimation</h2>
+
+    <p>Here is the fact that makes everything click. Suppose you train a neural network to do something embarrassingly simple: given a noisy version of a data point, predict the noise that was added. Just the noise &mdash; the <span class="math">&epsilon;</span> in <span class="math">x<sub>t</sub> = &radic;&alpha;&#772;<sub>t</sub> &middot; x<sub>0</sub> + &radic;(1 &minus; &alpha;&#772;<sub>t</sub>) &middot; &epsilon;</span>. The network sees <span class="math">x<sub>t</sub></span> and the timestep <em>t</em>, and outputs its best guess <span class="math">&epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t)</span>.</p>
+
+    <p>The training loss is the simplest thing imaginable:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Denoising Loss</span>
+      <div>L = E<sub>t, x<sub>0</sub>, &epsilon;</sub>[ || &epsilon; &minus; &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t) ||&sup2; ]</div>
+      <span class="comment">&mdash; mean squared error between the actual noise and the predicted noise, averaged over timesteps t, data points x<sub>0</sub>, and noise samples &epsilon;</span>
+    </div>
+
+    <p>This is a regression problem. The network learns to look at a noisy image and figure out which part is noise.<sup><a href="#fn-1" title="This is a continuous analog of the credit assignment problem.">[1]</a></sup> Nothing about score functions, nothing about gradients of log-probability, nothing about SDEs. Just: see noise, predict noise.</p>
+
+    <p>And yet &mdash; this is the beautiful part &mdash; a network that predicts noise <em>is</em> computing the score function. The connection is exact:<sup><a href="#fn-4" title="This follows from Tweedie's formula (1956) for the posterior mean of an exponential family.">[4]</a></sup></p>
+
+    <div class="math-block">
+      <span class="eq-label">The Tweedie Connection</span>
+      <div>&nabla;<sub>x<sub>t</sub></sub> log q(x<sub>t</sub>) = &minus;&epsilon; / &radic;(1 &minus; &alpha;&#772;<sub>t</sub>)</div>
+      <span class="comment">&mdash; the score of the noisy distribution equals the noise (flipped and scaled)</span>
+      <div style="margin-top:.5rem">so: &nabla;<sub>x<sub>t</sub></sub> log q(x<sub>t</sub>) &approx; &minus;&epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t) / &radic;(1 &minus; &alpha;&#772;<sub>t</sub>)</div>
+      <span class="comment">&mdash; a trained denoiser directly approximates the score function</span>
+    </div>
+
+    <p>Read that again. The noise that was added to an image and the gradient of the log-probability of the noisy image are the same thing, up to a scale factor. When the network learns to predict the noise, it is &mdash; without ever being told &mdash; learning the score function of the noisy data distribution. Not approximately. <em>Exactly</em>, in the limit of infinite data and a perfect optimizer.</p>
+
+    <p>Why? Think about what the score function means at a noisy point <span class="math">x<sub>t</sub></span>. It points in the direction of increasing probability &mdash; which is the direction of &ldquo;less noisy, more data-like.&rdquo; And what is the direction from a noisy point back toward the clean data? It is <em>the negative of the noise that was added</em>. The noise points from data to noise; the score points from noise to data. They are the same arrow, reversed.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>Denoising and score estimation are two descriptions of the same computation. Training a network to remove noise is identical to training it to estimate &nabla;<sub>x</sub> log p(x). This is the theoretical bedrock of diffusion models &mdash; and it explains why such a simple training objective produces such powerful generative models.</p>
+    </div>
+
+    <p>This connection was not obvious when diffusion models were first proposed. The 2015 paper by Sohl-Dickstein et al. framed the problem in terms of thermodynamic free energy.<sup><a href="#fn-5" title="Sohl-Dickstein et al. (2015), &lsquo;Deep Unsupervised Learning using Nonequilibrium Thermodynamics.&rsquo;">[5]</a></sup> Ho, Jain, and Abbeel&rsquo;s 2020 DDPM paper discovered empirically that predicting <span class="math">&epsilon;</span> worked better than predicting <span class="math">x<sub>0</sub></span>. It was Song and Ermon who made the score function connection explicit, unifying denoising with score matching and stochastic differential equations.<sup><a href="#fn-6" title="Song and Ermon (2019, 2020); Song et al. (2021), &lsquo;Score-Based Generative Modeling through SDEs.&rsquo;">[6]</a></sup> Three different research threads turned out to be the same thread, viewed from different angles.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; Going Backward</span>
+    <h2>The Reverse Process</h2>
+
+    <p>Now we have everything we need. The forward process destroys data step by step. We have a network that can estimate the score function &mdash; the arrows pointing from noise toward data &mdash; at any noise level. To generate, we simply follow the arrows.</p>
+
+    <p>Start with pure noise: <span class="math">x<sub>T</sub> ~ N(0, I)</span>. At each step, use the network to estimate the score at the current point and noise level, then take a small step in that direction, adding a dash of fresh noise to keep the stochastic process well-behaved. The reverse step is:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Reverse Step (DDPM Sampler)</span>
+      <div>x<sub>t&minus;1</sub> = (1/&radic;&alpha;<sub>t</sub>) &middot; (x<sub>t</sub> &minus; (1 &minus; &alpha;<sub>t</sub>)/&radic;(1 &minus; &alpha;&#772;<sub>t</sub>) &middot; &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t)) + &sigma;<sub>t</sub> &middot; z</div>
+      <span class="comment">&mdash; subtract the predicted noise (scaled), then add a small amount of fresh noise z ~ N(0, I)</span>
+      <div style="margin-top:.5rem">where &sigma;<sub>t</sub> = &radic;&beta;<sub>t</sub> (the noise injection for stochasticity)</div>
+    </div>
+
+    <p>The first term undoes the scaling: dividing by <span class="math">&radic;&alpha;<sub>t</sub></span> reverses the shrinkage from the forward step. The second term subtracts the estimated noise, pointed in the score direction. The third term adds fresh noise &mdash; this is what makes it a stochastic process rather than a deterministic one, and it is what allows different samples from the same starting noise.<sup><a href="#fn-7" title="Setting &sigma;<sub>t</sub> = 0 gives the DDIM sampler (Song et al., 2020), which is deterministic and allows fewer steps.">[7]</a></sup></p>
+
+    <p>Watch what happens when we run this process on our 2D distribution:</p>
+
+    <!-- Demo 4: Reverse Process -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Reverse Process: Noise to Data</div>
+      <p class="interactive-setup">Press Play to launch 30 particles from random noise. Watch them first drift toward the data region (coarse structure, high noise), then separate into individual clusters (fine structure, low noise). Each run produces different samples. The trail shows each particle&rsquo;s trajectory.</p>
+      <canvas id="cvReverse" height="400"></canvas>
+      <div class="demo-controls">
+        <button class="btn primary" id="revPlayBtn" onclick="startReverse()">&#9654; Generate</button>
+        <button class="btn" onclick="resetReverse()">&#8634; Reset</button>
+        <span class="demo-status" id="revStatus" style="margin-top:0;margin-left:.5rem;">Ready. Press Generate to sample from noise.</span>
+      </div>
+    </div>
+
+    <p>The trajectory tells the whole story. In the early steps (high noise, smooth score field), all particles drift toward the center of the data distribution &mdash; they have not yet &ldquo;decided&rdquo; which cluster to join. This is coarse structure emerging. In the later steps (low noise, detailed score field), the particles commit to individual clusters and settle into their final positions. This is fine structure.</p>
+
+    <p>This is why diffusion models produce such high-quality samples. They do not try to generate the entire image in one shot, which would require the network to simultaneously get every pixel right. Instead, they build the image gradually &mdash; broad composition first, then medium-scale features, then fine textures and details. Each denoising step is a small, tractable problem: remove a small amount of noise. The magic is in the accumulation of 1,000 small improvements.</p>
+
+    <!-- Demo 5: Denoising Step-Through -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Denoising Step by Step</div>
+      <p class="interactive-setup">Step through the reverse process one step at a time. At each step, see the current noisy state (left), the predicted noise (middle), and the denoised result (right). Notice how early steps make large corrections and late steps make tiny refinements.</p>
+      <canvas id="cvStepThru" height="320"></canvas>
+      <div class="demo-controls">
+        <button class="btn" onclick="stepDenBack()">&#8592; Back</button>
+        <button class="btn" onclick="stepDenFwd()">Forward &#8594;</button>
+        <button class="btn primary" id="stepAutoBtn" onclick="toggleStepAuto()">&#9654; Auto-play</button>
+        <button class="btn" onclick="resetStepThru()">&#8634; Reset</button>
+        <span id="stepCounter" style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted);margin-left:.5rem;"></span>
+      </div>
+      <div id="stepDesc" style="margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:2.5em;"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Schedule</span>
+    <h2>The Noise Schedule</h2>
+
+    <p>Not all noise is created equal. The noise schedule &mdash; the sequence of <span class="math">&beta;<sub>1</sub>, &hellip;, &beta;<sub>T</sub></span> &mdash; determines how quickly the signal is destroyed and, critically, how much time the model spends on each scale of detail during generation.</p>
+
+    <p>The original DDPM paper used a <strong>linear schedule</strong>: <span class="math">&beta;<sub>t</sub></span> increases uniformly from <span class="math">&beta;<sub>1</sub> = 10<sup>&minus;4</sup></span> to <span class="math">&beta;<sub>T</sub> = 0.02</span> over 1,000 steps. This works, but it has a problem. The linear increase means the signal-to-noise ratio drops very quickly in the middle of the process. Most of the &ldquo;information budget&rdquo; is spent at the very noisy end, where the model is just learning coarse structure, and very little is spent at the clean end, where fine details matter.</p>
+
+    <p>Nichol and Dhariwal (2021) proposed the <strong>cosine schedule</strong>, which distributes the noise more evenly across timesteps.<sup><a href="#fn-8" title="Nichol and Dhariwal (2021), &lsquo;Improved Denoising Diffusion Probabilistic Models.&rsquo;">[8]</a></sup> Instead of a linear ramp, <span class="math">&alpha;&#772;<sub>t</sub></span> follows a cosine curve: it stays close to 1 for a long time (preserving signal), then drops smoothly toward 0. The effect is dramatic: the model spends more timesteps in the regime where the image is partially noisy &mdash; exactly the regime where fine details are being resolved.</p>
+
+    <!-- Demo 6: Noise Schedule Explorer -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Noise Schedule Comparison</div>
+      <p class="interactive-setup">Compare linear and cosine schedules side by side. The top curve shows how the signal-to-noise ratio (&alpha;&#772;<sub>t</sub>) evolves. The bottom shows the data distribution at 4 snapshots along the schedule. The cosine schedule preserves signal longer, giving the model more time for fine detail.</p>
+      <div class="schedule-compare">
+        <div class="schedule-panel">
+          <div class="schedule-panel-title">Linear Schedule</div>
+          <canvas id="cvSchedLinear" height="200"></canvas>
+        </div>
+        <div class="schedule-panel">
+          <div class="schedule-panel-title">Cosine Schedule</div>
+          <canvas id="cvSchedCosine" height="200"></canvas>
+        </div>
+      </div>
+      <div class="demo-controls" style="margin-top:1rem;">
+        <div class="slider-group">
+          <span>Timestep:</span>
+          <input type="range" id="schedSlider" min="0" max="100" value="50" oninput="onSchedSlider(this.value)">
+          <span class="slider-val" id="schedVal">500</span>
+        </div>
+      </div>
+      <div class="demo-status" id="schedStatus">t = 500: Linear &alpha;&#772; = 0.07 (mostly noise) | Cosine &alpha;&#772; = 0.50 (balanced mix)</div>
+    </div>
+
+    <p>The difference is not subtle. At timestep 500 (halfway through a 1,000-step process), the linear schedule has already destroyed 93% of the signal &mdash; <span class="math">&alpha;&#772;<sub>500</sub> &approx; 0.07</span>. The cosine schedule has destroyed only 50% &mdash; <span class="math">&alpha;&#772;<sub>500</sub> &approx; 0.50</span>. This means the linear model spends the second half of generation working almost entirely on coarse structure, while the cosine model spends it on the transition from coarse to fine. In practice, the cosine schedule produces sharper images with better fine details.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>The noise schedule controls where the model spends its capacity. A linear schedule wastes timesteps at the noisy end. A cosine schedule distributes effort more evenly, spending more steps in the critical mid-noise regime where fine structure emerges. Schedule design is as important as architecture design.</p>
+    </div>
+
+    <!-- Quiz 2 -->
+    <div class="quiz-block">
+      <div class="quiz-q">A diffusion model produces images that have good composition and color but blurry fine details (hair, text, textures). Which change would most likely help?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf2', 'Correct answer explanation.', 'More steps would help some, but the real issue is where those steps are spent. If the schedule wastes most steps at high noise, more steps of the same schedule will not fix blurry details.')">Increase the number of timesteps T</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf2', 'Correct. Blurry fine details suggest the model spends too little time in the low-noise regime. A cosine schedule allocates more steps to the regime where fine structure is resolved. This is exactly the improvement Nichol and Dhariwal observed.', 'Incorrect.')">Use a cosine schedule instead of linear</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf2', 'Correct answer explanation.', 'A larger model might help generally, but the symptom &mdash; good coarse structure, bad fine details &mdash; specifically points to a schedule problem, not a capacity problem.')">Use a larger neural network</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; The Leap</span>
+    <h2>From 2D Toys to Real Images</h2>
+
+    <p>Everything we have built works in 2D. Three Gaussian clusters. Arrows on a plane. Particles drifting along score fields. The question: does any of this survive the leap to 512&times;512 images &mdash; a space of 786,432 dimensions?</p>
+
+    <p>The answer is yes, and the reasons are worth understanding. The core math does not change in higher dimensions. A Gaussian is a Gaussian whether it lives in 2D or in 786,432D. The forward process is still &ldquo;shrink and add noise.&rdquo; The score function is still the gradient of log-probability. The reverse process is still &ldquo;follow the arrows.&rdquo; What changes is the <em>architecture</em> of the network that estimates the score.</p>
+
+    <p>In 2D, a small MLP could learn the score function of our three-cluster distribution. For images, the standard architecture is a <strong>U-Net</strong>: a convolutional network with an encoder that compresses the image to low resolution, a decoder that expands it back, and skip connections that carry high-resolution detail across the bottleneck. The U-Net takes in a noisy image and the timestep <em>t</em> (encoded as a sinusoidal embedding, the same technique used in Transformers for position encoding) and outputs the predicted noise <span class="math">&epsilon;<sub>&theta;</sub></span> at the same resolution as the input.<sup><a href="#fn-9" title="Ronneberger et al. (2015) introduced U-Net for biomedical segmentation; Ho et al. adapted it for denoising.">[9]</a></sup></p>
+
+    <p>The U-Net architecture is not a coincidence. Its multi-scale structure mirrors the multi-scale nature of the diffusion process itself. At high noise levels, the relevant features are low-frequency &mdash; broad shapes, color blocks, composition. These are captured by the bottleneck layers. At low noise levels, the relevant features are high-frequency &mdash; edges, textures, fine details. These are captured by the skip connections. One architecture, processing all scales.</p>
+
+    <h3>The cost of quality</h3>
+
+    <p>There is a tradeoff that our 2D demos hid. Each step of the reverse process requires a full forward pass through the U-Net. For a 512&times;512 image with a U-Net of ~860 million parameters, that is about 0.1 seconds on an A100 GPU. Multiply by 1,000 steps and generation takes 100 seconds per image. Compare this to a GAN, which generates an image in a single forward pass (~0.03 seconds). Diffusion models traded speed for quality and training stability.</p>
+
+    <p>This cost spurred a wave of research into faster sampling: DDIM (Song et al., 2020) showed you can skip steps by making the process deterministic, reducing 1,000 steps to 50 with minimal quality loss. Distillation methods (Salimans and Ho, 2022) train a student network to mimic the diffusion process in fewer steps. Consistency models (Song et al., 2023) collapse the entire chain into a single step.<sup><a href="#fn-10" title="Song et al., &lsquo;Consistency Models&rsquo; (2023); Salimans and Ho, &lsquo;Progressive Distillation for Fast Sampling&rsquo; (2022).">[10]</a></sup> The field moved from 1,000 steps to 1 step in three years.</p>
+
+    <h3>Conditioning: from noise to specific images</h3>
+
+    <p>An unconditional diffusion model generates random samples from the data distribution. But the models that changed the world &mdash; DALL-E 2, Stable Diffusion, Imagen &mdash; generate images from text prompts. How?</p>
+
+    <p>The trick is <strong>classifier-free guidance</strong>. During training, the text condition is randomly dropped (replaced with a null token) some fraction of the time. At generation, the model computes two noise predictions: one conditioned on the text prompt, one unconditional. The final prediction is an extrapolation <em>away</em> from the unconditional prediction and <em>toward</em> the conditional one, scaled by a guidance weight <em>w</em>:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Classifier-Free Guidance</span>
+      <div>&epsilon;&#770; = &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, &empty;) + w &middot; (&epsilon;<sub>&theta;</sub>(x<sub>t</sub>, c) &minus; &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, &empty;))</div>
+      <span class="comment">&mdash; &empty; is the null condition, c is the text prompt, w &gt; 1 amplifies the text influence</span>
+    </div>
+
+    <p>At <em>w</em> = 1, you get normal conditional generation. At <em>w</em> = 7.5 (a common default), the model overshoots &mdash; producing images that are more stereotypically aligned with the text, at the cost of some diversity. It is a dial between &ldquo;creative&rdquo; and &ldquo;literal.&rdquo;<sup><a href="#fn-11" title="Ho and Salimans (2022), &lsquo;Classifier-Free Diffusion Guidance.&rsquo; The guidance scale is arguably the single most important hyperparameter at inference time.">[11]</a></sup></p>
+
+    <!-- Quiz 3 -->
+    <div class="quiz-block">
+      <div class="quiz-q">Why does the diffusion model's noise-prediction network need to know the current timestep t?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf3', 'Correct explanation.', 'The noise magnitude is determined by the schedule, not learned. The network does not decide how much noise to add &mdash; it estimates the noise that is already there, and the nature of that noise differs by t.')">So it can add the right amount of noise at each step</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf3', 'Exactly. At t = 900, the noise is massive and the network should look for broad structure. At t = 50, the noise is tiny and the network should look for fine details. The same noisy image demands fundamentally different processing depending on how noisy it is. The timestep tells the network which &ldquo;mode&rdquo; to operate in.', 'Incorrect.')">The type of noise to predict changes at different noise levels &mdash; coarse at high t, fine at low t</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf3', 'Correct explanation.', 'The number of remaining steps affects the sampler, not the network itself. The network always does the same job: estimate the noise at the current timestep. It needs t to know what scale of noise to look for.')">To know how many remaining steps there are in the reverse process</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VIII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s8">VIII. &mdash; Arrival</span>
+    <h2>Synthesis</h2>
+
+    <p>Here is the full arc. You start with data and destroy it, step by step, with Gaussian noise. This is trivial. You train a network to predict the noise at each step. This is a regression problem &mdash; mean squared error, nothing exotic. And yet, by Tweedie&rsquo;s formula, predicting noise is secretly learning the score function: the gradient of log-probability at every noise level. To generate, you start with pure noise and follow the score field backward, from high noise to low, from chaos to structure. Each step is a small denoising task. A thousand small denoisings compose into a single act of creation.</p>
+
+    <p>The score function is the thread that ties it all together. It connects denoising (a supervised learning task) to probability (an analytical concept) to generation (a practical goal). You do not need to compute likelihoods or sample from intractable distributions. You need arrows. The arrows point toward data, and following them is all that generation requires.</p>
+
+    <p>There is something poetic about this framework. Destruction and creation are not opposites &mdash; they are inverses. The same mathematical process, run forward, erases structure; run backward, it creates structure. The network that learns to undo one step of noise, trained on nothing more ambitious than &ldquo;what noise was added here?,&rdquo; becomes &mdash; without intending to &mdash; an oracle of the entire data distribution. It does not memorize images. It learns the shape of the space that images occupy, encoded in a field of arrows that say, at every point, &ldquo;data is <em>this way</em>.&rdquo;</p>
+
+    <p>The reason diffusion models work is not that they are clever about noise, though they are. It is that learning to denoise at every scale is equivalent to learning the geometry of the probability landscape itself. The score function is that geometry. And once you have it, generation is just a walk downhill &mdash; from the featureless summit of maximum entropy to the rich valleys where data lives.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote" id="fn-1"><span class="fn-num">[1]</span><span>The <em>credit assignment problem</em> is central to all learning systems. In the context of diffusion models, the network must learn which direction to &ldquo;push&rdquo; each pixel to reduce noise &mdash; a continuous analog of credit assignment. Minsky described the discrete version in 1961.</span></div>
+      <div class="footnote" id="fn-2"><span class="fn-num">[2]</span><span>Ho, Jain, and Abbeel (2020), &ldquo;Denoising Diffusion Probabilistic Models.&rdquo; <em>NeurIPS 2020</em>. The paper that made diffusion models practical. They found that predicting &epsilon; worked much better than predicting x<sub>0</sub>, though the two are mathematically equivalent.</span></div>
+      <div class="footnote" id="fn-3"><span class="fn-num">[3]</span><span>Feller (1949) showed that the time-reversal of a diffusion process is also a diffusion process with a drift term determined by the score function. Anderson (1982) formalized this for discrete-time processes. This foundational result is why the reverse process is tractable at all.</span></div>
+      <div class="footnote" id="fn-4"><span class="fn-num">[4]</span><span>Tweedie&rsquo;s formula (1956) gives the posterior mean of an exponential family distribution. In our context: the best estimate of x<sub>0</sub> given x<sub>t</sub> involves the score of x<sub>t</sub>. Efron (2011) provides a modern treatment in &ldquo;Tweedie&rsquo;s Formula and Selection Bias.&rdquo;</span></div>
+      <div class="footnote" id="fn-5"><span class="fn-num">[5]</span><span>Sohl-Dickstein, Weiss, Maheswaranathan, and Ganguli (2015), &ldquo;Deep Unsupervised Learning using Nonequilibrium Thermodynamics.&rdquo; <em>ICML 2015</em>. The original diffusion model paper, inspired by statistical physics. The ideas were ahead of the compute available at the time.</span></div>
+      <div class="footnote" id="fn-6"><span class="fn-num">[6]</span><span>Song and Ermon (2019), &ldquo;Generative Modeling by Estimating Gradients of the Data Distribution.&rdquo; <em>NeurIPS 2019</em>. Song, Sohl-Dickstein, Kingma, Kumar, Ermon, and Poole (2021), &ldquo;Score-Based Generative Modeling through Stochastic Differential Equations.&rdquo; <em>ICLR 2021</em>. This latter paper unified DDPMs, score matching, and SDEs into a single framework.</span></div>
+      <div class="footnote" id="fn-7"><span class="fn-num">[7]</span><span>Song, Meng, and Ermon (2020), &ldquo;Denoising Diffusion Implicit Models&rdquo; (DDIM). By making &sigma;<sub>t</sub> = 0, the reverse process becomes deterministic: the same initial noise always produces the same image. This enables interpolation in noise space and dramatically fewer sampling steps.</span></div>
+      <div class="footnote" id="fn-8"><span class="fn-num">[8]</span><span>Nichol and Dhariwal (2021), &ldquo;Improved Denoising Diffusion Probabilistic Models.&rdquo; <em>ICML 2021</em>. Beyond the cosine schedule, they also learned the variance &sigma;<sub>t</sub> of the reverse process, rather than fixing it, gaining significant log-likelihood improvements.</span></div>
+      <div class="footnote" id="fn-9"><span class="fn-num">[9]</span><span>Ronneberger, Fischer, and Brox (2015), &ldquo;U-Net: Convolutional Networks for Biomedical Image Segmentation.&rdquo; The U-Net was adopted for diffusion because its encoder-decoder structure with skip connections naturally matches the multi-scale denoising task. Modern variants (Stable Diffusion&rsquo;s U-Net, DiT) add attention layers and operate in a learned latent space rather than pixel space.</span></div>
+      <div class="footnote" id="fn-10"><span class="fn-num">[10]</span><span>The speed-quality frontier moved remarkably fast. DDPM (2020): 1000 steps. DDIM (2020): 50 steps. Progressive Distillation (2022): 4 steps. Consistency Models (2023): 1&ndash;2 steps. Latent consistency models and SDXL Turbo brought single-step generation to production in 2023&ndash;2024.</span></div>
+      <div class="footnote" id="fn-11"><span class="fn-num">[11]</span><span>Ho and Salimans (2022), &ldquo;Classifier-Free Diffusion Guidance.&rdquo; The guidance scale w acts as a quality-diversity tradeoff: higher w = more prompt-aligned but less diverse images. At w = 1, you get the true conditional distribution. At w = 7.5 (typical for Stable Diffusion), you get sharper, more &ldquo;stereotypical&rdquo; images. At w = 20+, images become oversaturated caricatures.</span></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.textContent = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// SHARED: 2D Gaussian Mixture
+// ═══════════════════════════════════════
+const CENTERS = [
+  { x: -2.2, y: 1.0 },
+  { x: 1.8, y: 1.5 },
+  { x: 0.0, y: -2.0 }
+];
+const CLUSTER_STD = 0.45;
+const N_POINTS = 180;
+const COLORS = ['#2a5db0', '#c4622d', '#1a7a4a'];
+
+function randNorm() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function generateCleanPoints() {
+  const pts = [];
+  for (let i = 0; i < N_POINTS; i++) {
+    const ci = i % 3;
+    pts.push({
+      x0: CENTERS[ci].x + randNorm() * CLUSTER_STD,
+      y0: CENTERS[ci].y + randNorm() * CLUSTER_STD,
+      ci: ci
+    });
+  }
+  return pts;
+}
+
+function noisyPoint(p, t01) {
+  const abar = alphaBarAt(t01);
+  const sqrtA = Math.sqrt(abar);
+  const sqrtOneMinusA = Math.sqrt(1 - abar);
+  return {
+    x: sqrtA * p.x0 + sqrtOneMinusA * p.nx,
+    y: sqrtA * p.y0 + sqrtOneMinusA * p.ny,
+    ci: p.ci
+  };
+}
+
+function alphaBarAt(t01) {
+  // cosine schedule
+  const s = 0.008;
+  const f0 = Math.cos(s / (1 + s) * Math.PI / 2);
+  const ft = Math.cos((t01 + s) / (1 + s) * Math.PI / 2);
+  return Math.max(0.001, Math.min(1, (ft * ft) / (f0 * f0)));
+}
+
+function scoreAt(x, y, sigma) {
+  // Score = nabla_x log p_sigma(x) for mixture of Gaussians convolved with N(0, sigma^2 I)
+  const sSq = sigma * sigma;
+  const totalVar = CLUSTER_STD * CLUSTER_STD + sSq;
+  let sx = 0, sy = 0, wTotal = 0;
+  for (let k = 0; k < 3; k++) {
+    const dx = x - CENTERS[k].x;
+    const dy = y - CENTERS[k].y;
+    const w = Math.exp(-0.5 * (dx * dx + dy * dy) / totalVar);
+    wTotal += w;
+    sx += w * (-dx / totalVar);
+    sy += w * (-dy / totalVar);
+  }
+  if (wTotal < 1e-30) return { sx: 0, sy: 0 };
+  return { sx: sx / wTotal, sy: sy / wTotal };
+}
+
+// ═══════════════════════════════════════
+// DEMO 1: FORWARD PROCESS
+// ═══════════════════════════════════════
+const cvFwd = document.getElementById('cvForward');
+const ctxFwd = cvFwd.getContext('2d');
+let fwdPts = [];
+let fwdT = 0;
+let fwdAnimId = null;
+const FWD_H = 360;
+
+function initFwd() {
+  fwdPts = generateCleanPoints();
+  // Pre-assign noise for consistent trajectories
+  fwdPts.forEach(p => { p.nx = randNorm(); p.ny = randNorm(); });
+  fwdT = 0;
+  document.getElementById('fwdSlider').value = 0;
+  document.getElementById('fwdVal').textContent = '0';
+}
+
+function resizeFwd() {
+  cvFwd.width = cvFwd.offsetWidth * devicePixelRatio;
+  cvFwd.height = FWD_H * devicePixelRatio;
+  ctxFwd.scale(devicePixelRatio, devicePixelRatio);
+  drawFwd();
+}
+
+function drawFwd() {
+  const W = cvFwd.offsetWidth, H = FWD_H;
+  ctxFwd.clearRect(0, 0, W, H);
+
+  // White background
+  ctxFwd.fillStyle = 'white';
+  ctxFwd.fillRect(0, 0, W, H);
+
+  // Data range
+  const xMin = -5, xMax = 5, yMin = -4.5, yMax = 4.5;
+  const px = x => (x - xMin) / (xMax - xMin) * W;
+  const py = y => (1 - (y - yMin) / (yMax - yMin)) * H;
+
+  // Light grid
+  ctxFwd.strokeStyle = 'rgba(0,0,0,0.04)';
+  ctxFwd.lineWidth = 0.5;
+  for (let gx = -4; gx <= 4; gx++) {
+    ctxFwd.beginPath(); ctxFwd.moveTo(px(gx), 0); ctxFwd.lineTo(px(gx), H); ctxFwd.stroke();
+  }
+  for (let gy = -4; gy <= 4; gy++) {
+    ctxFwd.beginPath(); ctxFwd.moveTo(0, py(gy)); ctxFwd.lineTo(W, py(gy)); ctxFwd.stroke();
+  }
+
+  // Points
+  const t01 = fwdT / 100;
+  fwdPts.forEach(p => {
+    const np = noisyPoint(p, t01);
+    ctxFwd.beginPath();
+    ctxFwd.arc(px(np.x), py(np.y), 3.5, 0, Math.PI * 2);
+    const alpha = 0.55 + 0.35 * (1 - t01);
+    ctxFwd.fillStyle = COLORS[np.ci] + Math.round(alpha * 255).toString(16).padStart(2, '0');
+    ctxFwd.fill();
+  });
+
+  // Labels
+  ctxFwd.fillStyle = '#7a7870';
+  ctxFwd.font = "10px 'DM Mono'";
+  ctxFwd.textAlign = 'left';
+  const abar = alphaBarAt(t01);
+  ctxFwd.fillText(`t = ${Math.round(fwdT * 10)}  |  ᾱ = ${abar.toFixed(3)}  |  signal: ${(abar * 100).toFixed(0)}%`, 8, 16);
+}
+
+function onFwdSlider(v) {
+  fwdT = parseFloat(v);
+  document.getElementById('fwdVal').textContent = Math.round(fwdT * 10);
+  tone(200 + fwdT * 4, 'triangle', 0.06, 0.03);
+  drawFwd();
+  const t = fwdT / 100;
+  const st = document.getElementById('fwdStatus');
+  if (t < 0.05) st.textContent = `t = ${Math.round(fwdT*10)}: Clean data. Three distinct clusters.`;
+  else if (t < 0.3) st.textContent = `t = ${Math.round(fwdT*10)}: Slight noise. Clusters still clearly visible.`;
+  else if (t < 0.6) st.textContent = `t = ${Math.round(fwdT*10)}: Moderate noise. Cluster boundaries blurring.`;
+  else if (t < 0.85) st.textContent = `t = ${Math.round(fwdT*10)}: Heavy noise. Structure fading.`;
+  else st.textContent = `t = ${Math.round(fwdT*10)}: Almost pure noise. Original structure destroyed.`;
+}
+
+function toggleFwdPlay() {
+  if (fwdAnimId) {
+    clearInterval(fwdAnimId);
+    fwdAnimId = null;
+    document.getElementById('fwdPlayBtn').innerHTML = '&#9654; Play';
+    return;
+  }
+  if (fwdT >= 100) { fwdT = 0; }
+  document.getElementById('fwdPlayBtn').innerHTML = '&#9646;&#9646; Pause';
+  fwdAnimId = setInterval(() => {
+    fwdT += 0.5;
+    if (fwdT > 100) {
+      fwdT = 100;
+      clearInterval(fwdAnimId);
+      fwdAnimId = null;
+      document.getElementById('fwdPlayBtn').innerHTML = '&#9654; Play';
+      playOK();
+    }
+    document.getElementById('fwdSlider').value = fwdT;
+    onFwdSlider(fwdT);
+  }, 40);
+  playClick();
+}
+
+function resetFwd() {
+  if (fwdAnimId) { clearInterval(fwdAnimId); fwdAnimId = null; }
+  document.getElementById('fwdPlayBtn').innerHTML = '&#9654; Play';
+  initFwd();
+  drawFwd();
+  document.getElementById('fwdStatus').textContent = 't = 0: Clean data. Three distinct clusters.';
+  playClick();
+}
+
+// ═══════════════════════════════════════
+// DEMO 2: SCORE FIELD VISUALIZATION
+// ═══════════════════════════════════════
+const cvSc = document.getElementById('cvScore');
+const ctxSc = cvSc.getContext('2d');
+const SC_H = 400;
+let scoreParticles = [];
+let scoreAnimId = null;
+const SCORE_SIGMA = 0.3;
+
+function resizeScore() {
+  cvSc.width = cvSc.offsetWidth * devicePixelRatio;
+  cvSc.height = SC_H * devicePixelRatio;
+  ctxSc.scale(devicePixelRatio, devicePixelRatio);
+  drawScore();
+}
+
+function drawScore() {
+  const W = cvSc.offsetWidth, H = SC_H;
+  ctxSc.clearRect(0, 0, W, H);
+  ctxSc.fillStyle = 'white';
+  ctxSc.fillRect(0, 0, W, H);
+
+  const xMin = -5, xMax = 5, yMin = -4.5, yMax = 4.5;
+  const px = x => (x - xMin) / (xMax - xMin) * W;
+  const py = y => (1 - (y - yMin) / (yMax - yMin)) * H;
+
+  // Draw score arrows on a grid
+  const step = 0.55;
+  for (let gx = xMin + step/2; gx <= xMax; gx += step) {
+    for (let gy = yMin + step/2; gy <= yMax; gy += step) {
+      const s = scoreAt(gx, gy, SCORE_SIGMA);
+      const mag = Math.sqrt(s.sx * s.sx + s.sy * s.sy);
+      const maxLen = step * 0.42;
+      const len = Math.min(mag * 0.7, maxLen);
+      if (len < 0.01) continue;
+      const nx = s.sx / (mag + 1e-9) * len;
+      const ny = s.sy / (mag + 1e-9) * len;
+      const fromX = px(gx - nx * 0.3);
+      const fromY = py(gy - ny * 0.3);
+      const toX = px(gx + nx * 0.7);
+      const toY = py(gy + ny * 0.7);
+
+      const opacity = Math.min(0.65, 0.15 + mag * 0.25);
+      ctxSc.strokeStyle = `rgba(107,63,160,${opacity})`;
+      ctxSc.lineWidth = 1.2;
+      ctxSc.beginPath();
+      ctxSc.moveTo(fromX, fromY);
+      ctxSc.lineTo(toX, toY);
+      ctxSc.stroke();
+
+      // Arrowhead
+      const angle = Math.atan2(-(toY - fromY), toX - fromX);
+      ctxSc.fillStyle = `rgba(107,63,160,${opacity})`;
+      ctxSc.beginPath();
+      ctxSc.moveTo(toX, toY);
+      ctxSc.lineTo(toX - 5 * Math.cos(angle - 0.45), toY + 5 * Math.sin(angle - 0.45));
+      ctxSc.lineTo(toX - 5 * Math.cos(angle + 0.45), toY + 5 * Math.sin(angle + 0.45));
+      ctxSc.closePath();
+      ctxSc.fill();
+    }
+  }
+
+  // Draw cluster centers
+  CENTERS.forEach((c, i) => {
+    ctxSc.beginPath();
+    ctxSc.arc(px(c.x), py(c.y), 8, 0, Math.PI * 2);
+    ctxSc.fillStyle = COLORS[i] + '30';
+    ctxSc.fill();
+    ctxSc.strokeStyle = COLORS[i] + '80';
+    ctxSc.lineWidth = 1.5;
+    ctxSc.stroke();
+  });
+
+  // Draw particles with trails
+  scoreParticles.forEach(p => {
+    // Trail
+    if (p.trail.length > 1) {
+      ctxSc.beginPath();
+      ctxSc.moveTo(px(p.trail[0].x), py(p.trail[0].y));
+      for (let i = 1; i < p.trail.length; i++) {
+        ctxSc.lineTo(px(p.trail[i].x), py(p.trail[i].y));
+      }
+      ctxSc.strokeStyle = '#c4622d55';
+      ctxSc.lineWidth = 1.5;
+      ctxSc.stroke();
+    }
+    // Current position
+    ctxSc.beginPath();
+    ctxSc.arc(px(p.x), py(p.y), 5, 0, Math.PI * 2);
+    ctxSc.fillStyle = '#c4622d';
+    ctxSc.shadowColor = '#c4622d';
+    ctxSc.shadowBlur = 8;
+    ctxSc.fill();
+    ctxSc.shadowBlur = 0;
+  });
+}
+
+function animateScoreParticles() {
+  let anyMoving = false;
+  scoreParticles.forEach(p => {
+    if (p.steps > 300) return;
+    const s = scoreAt(p.x, p.y, SCORE_SIGMA);
+    const lr = 0.04;
+    p.x += s.sx * lr + randNorm() * 0.015;
+    p.y += s.sy * lr + randNorm() * 0.015;
+    p.trail.push({ x: p.x, y: p.y });
+    p.steps++;
+    anyMoving = true;
+  });
+  drawScore();
+  if (anyMoving) {
+    scoreAnimId = requestAnimationFrame(animateScoreParticles);
+  } else {
+    scoreAnimId = null;
+  }
+}
+
+function addScoreParticle(x, y) {
+  scoreParticles.push({ x, y, trail: [{ x, y }], steps: 0 });
+  if (!scoreAnimId) scoreAnimId = requestAnimationFrame(animateScoreParticles);
+  playClick();
+}
+
+cvSc.addEventListener('click', e => {
+  const rect = cvSc.getBoundingClientRect();
+  const cx = (e.clientX - rect.left) / rect.width;
+  const cy = (e.clientY - rect.top) / rect.height;
+  const x = -5 + cx * 10;
+  const y = 4.5 - cy * 9;
+  addScoreParticle(x, y);
+  document.getElementById('scoreStatus').textContent = `Particle dropped at (${x.toFixed(1)}, ${y.toFixed(1)}). Following the score field...`;
+});
+
+function dropRandomParticle() {
+  addScoreParticle(-5 + Math.random() * 10, -4.5 + Math.random() * 9);
+  document.getElementById('scoreStatus').textContent = 'Random particle dropped. Watch it follow arrows toward data.';
+}
+
+function dropMultipleParticles() {
+  for (let i = 0; i < 20; i++) {
+    addScoreParticle(-5 + Math.random() * 10, -4.5 + Math.random() * 9);
+  }
+  document.getElementById('scoreStatus').textContent = '20 particles dropped. Each one finds its way to a data cluster.';
+  playReveal();
+}
+
+function clearScoreParticles() {
+  scoreParticles = [];
+  if (scoreAnimId) { cancelAnimationFrame(scoreAnimId); scoreAnimId = null; }
+  drawScore();
+  document.getElementById('scoreStatus').textContent = 'Click anywhere to drop a particle. It will follow the score field toward data.';
+  playClick();
+}
+
+// ═══════════════════════════════════════
+// DEMO 3: NOISY SCORE FIELDS
+// ═══════════════════════════════════════
+const cvNS = document.getElementById('cvNoisyScore');
+const ctxNS = cvNS.getContext('2d');
+const NS_H = 400;
+let noisySigma = 0.3;
+
+function resizeNS() {
+  cvNS.width = cvNS.offsetWidth * devicePixelRatio;
+  cvNS.height = NS_H * devicePixelRatio;
+  ctxNS.scale(devicePixelRatio, devicePixelRatio);
+  drawNS();
+}
+
+function drawNS() {
+  const W = cvNS.offsetWidth, H = NS_H;
+  ctxNS.clearRect(0, 0, W, H);
+  ctxNS.fillStyle = 'white';
+  ctxNS.fillRect(0, 0, W, H);
+
+  const xMin = -5, xMax = 5, yMin = -4.5, yMax = 4.5;
+  const px = x => (x - xMin) / (xMax - xMin) * W;
+  const py = y => (1 - (y - yMin) / (yMax - yMin)) * H;
+
+  // Background: density heatmap
+  const res = 4;
+  for (let ix = 0; ix < W; ix += res) {
+    for (let iy = 0; iy < H; iy += res) {
+      const x = xMin + (ix / W) * (xMax - xMin);
+      const y = yMax - (iy / H) * (yMax - yMin);
+      const totalVar = CLUSTER_STD * CLUSTER_STD + noisySigma * noisySigma;
+      let density = 0;
+      for (let k = 0; k < 3; k++) {
+        const dx = x - CENTERS[k].x;
+        const dy = y - CENTERS[k].y;
+        density += Math.exp(-0.5 * (dx * dx + dy * dy) / totalVar);
+      }
+      density /= 3;
+      const alpha = Math.min(0.15, density * 0.4);
+      if (alpha > 0.005) {
+        ctxNS.fillStyle = `rgba(107,63,160,${alpha})`;
+        ctxNS.fillRect(ix, iy, res, res);
+      }
+    }
+  }
+
+  // Score arrows
+  const step = 0.55;
+  for (let gx = xMin + step/2; gx <= xMax; gx += step) {
+    for (let gy = yMin + step/2; gy <= yMax; gy += step) {
+      const s = scoreAt(gx, gy, noisySigma);
+      const mag = Math.sqrt(s.sx * s.sx + s.sy * s.sy);
+      const maxLen = step * 0.42;
+      const len = Math.min(mag * 0.7, maxLen);
+      if (len < 0.01) continue;
+      const nx = s.sx / (mag + 1e-9) * len;
+      const ny = s.sy / (mag + 1e-9) * len;
+      const fromX = px(gx - nx * 0.3);
+      const fromY = py(gy - ny * 0.3);
+      const toX = px(gx + nx * 0.7);
+      const toY = py(gy + ny * 0.7);
+
+      const opacity = Math.min(0.7, 0.15 + mag * 0.3);
+      ctxNS.strokeStyle = `rgba(107,63,160,${opacity})`;
+      ctxNS.lineWidth = 1.2;
+      ctxNS.beginPath();
+      ctxNS.moveTo(fromX, fromY);
+      ctxNS.lineTo(toX, toY);
+      ctxNS.stroke();
+
+      const angle = Math.atan2(-(toY - fromY), toX - fromX);
+      ctxNS.fillStyle = `rgba(107,63,160,${opacity})`;
+      ctxNS.beginPath();
+      ctxNS.moveTo(toX, toY);
+      ctxNS.lineTo(toX - 5 * Math.cos(angle - 0.45), toY + 5 * Math.sin(angle - 0.45));
+      ctxNS.lineTo(toX - 5 * Math.cos(angle + 0.45), toY + 5 * Math.sin(angle + 0.45));
+      ctxNS.closePath();
+      ctxNS.fill();
+    }
+  }
+
+  // Cluster centers
+  const fade = Math.max(0, 1 - noisySigma / 3);
+  CENTERS.forEach((c, i) => {
+    ctxNS.beginPath();
+    ctxNS.arc(px(c.x), py(c.y), 6, 0, Math.PI * 2);
+    ctxNS.fillStyle = COLORS[i] + Math.round(fade * 80).toString(16).padStart(2, '0');
+    ctxNS.fill();
+  });
+
+  // Label
+  ctxNS.fillStyle = '#7a7870';
+  ctxNS.font = "10px 'DM Mono'";
+  ctxNS.textAlign = 'left';
+  ctxNS.fillText(`σ = ${noisySigma.toFixed(2)}`, 8, 16);
+}
+
+function onNoisySigma(v) {
+  v = parseFloat(v);
+  noisySigma = 0.1 + (v / 100) * 4.9;
+  document.getElementById('noisySigmaVal').textContent = noisySigma.toFixed(1);
+  tone(150 + v * 4, 'triangle', 0.06, 0.03);
+  drawNS();
+  const st = document.getElementById('noisyScoreStatus');
+  if (noisySigma < 0.5) st.textContent = `σ = ${noisySigma.toFixed(1)}: Score field resolves individual clusters with clear boundaries.`;
+  else if (noisySigma < 1.5) st.textContent = `σ = ${noisySigma.toFixed(1)}: Clusters blending. Arrows between clusters becoming ambiguous.`;
+  else if (noisySigma < 3) st.textContent = `σ = ${noisySigma.toFixed(1)}: Mostly smoothed. A gentle funnel toward the global center.`;
+  else st.textContent = `σ = ${noisySigma.toFixed(1)}: Almost uniform pull toward center of mass. All fine structure erased.`;
+}
+
+// ═══════════════════════════════════════
+// DEMO 4: REVERSE PROCESS
+// ═══════════════════════════════════════
+const cvRev = document.getElementById('cvReverse');
+const ctxRev = cvRev.getContext('2d');
+const REV_H = 400;
+const REV_N = 30;
+const REV_STEPS = 200;
+let revParticles = [];
+let revStep = 0;
+let revAnimId = null;
+
+function resizeRev() {
+  cvRev.width = cvRev.offsetWidth * devicePixelRatio;
+  cvRev.height = REV_H * devicePixelRatio;
+  ctxRev.scale(devicePixelRatio, devicePixelRatio);
+  drawRev();
+}
+
+function initRevParticles() {
+  revParticles = [];
+  for (let i = 0; i < REV_N; i++) {
+    const x = randNorm() * 2.5;
+    const y = randNorm() * 2.5;
+    revParticles.push({ x, y, trail: [{ x, y }] });
+  }
+  revStep = 0;
+}
+
+function drawRev() {
+  const W = cvRev.offsetWidth, H = REV_H;
+  ctxRev.clearRect(0, 0, W, H);
+  ctxRev.fillStyle = 'white';
+  ctxRev.fillRect(0, 0, W, H);
+
+  const xMin = -5, xMax = 5, yMin = -4.5, yMax = 4.5;
+  const px = x => (x - xMin) / (xMax - xMin) * W;
+  const py = y => (1 - (y - yMin) / (yMax - yMin)) * H;
+
+  // Ghost cluster centers
+  CENTERS.forEach((c, i) => {
+    ctxRev.beginPath();
+    ctxRev.arc(px(c.x), py(c.y), 20, 0, Math.PI * 2);
+    ctxRev.fillStyle = COLORS[i] + '10';
+    ctxRev.fill();
+    ctxRev.beginPath();
+    ctxRev.arc(px(c.x), py(c.y), 20, 0, Math.PI * 2);
+    ctxRev.strokeStyle = COLORS[i] + '25';
+    ctxRev.lineWidth = 1;
+    ctxRev.stroke();
+  });
+
+  // Particles with trails
+  revParticles.forEach(p => {
+    if (p.trail.length > 1) {
+      ctxRev.beginPath();
+      ctxRev.moveTo(px(p.trail[0].x), py(p.trail[0].y));
+      for (let i = 1; i < p.trail.length; i++) {
+        ctxRev.lineTo(px(p.trail[i].x), py(p.trail[i].y));
+      }
+      ctxRev.strokeStyle = 'rgba(196,98,45,0.15)';
+      ctxRev.lineWidth = 1;
+      ctxRev.stroke();
+    }
+    // Current dot
+    ctxRev.beginPath();
+    ctxRev.arc(px(p.x), py(p.y), 4, 0, Math.PI * 2);
+    ctxRev.fillStyle = '#c4622d';
+    ctxRev.shadowColor = '#c4622d';
+    ctxRev.shadowBlur = 6;
+    ctxRev.fill();
+    ctxRev.shadowBlur = 0;
+  });
+
+  // Step label
+  ctxRev.fillStyle = '#7a7870';
+  ctxRev.font = "10px 'DM Mono'";
+  ctxRev.textAlign = 'left';
+  const tNorm = 1 - revStep / REV_STEPS;
+  ctxRev.fillText(`Step ${revStep}/${REV_STEPS}  |  t = ${(tNorm * 1000).toFixed(0)}`, 8, 16);
+}
+
+function startReverse() {
+  if (revAnimId) return;
+  initRevParticles();
+  drawRev();
+  document.getElementById('revStatus').textContent = 'Generating... Particles following score field from noise to data.';
+  document.getElementById('revPlayBtn').disabled = true;
+  playClick();
+
+  revAnimId = setInterval(() => {
+    const tNorm = 1 - revStep / REV_STEPS; // goes from 1 (full noise) to 0 (clean)
+    const sigma = 0.2 + tNorm * 4.5;
+    const lr = 0.06;
+    const noiseScale = Math.sqrt(lr) * tNorm * 0.3;
+
+    revParticles.forEach(p => {
+      const s = scoreAt(p.x, p.y, sigma);
+      p.x += s.sx * lr + randNorm() * noiseScale;
+      p.y += s.sy * lr + randNorm() * noiseScale;
+      if (revStep % 2 === 0) p.trail.push({ x: p.x, y: p.y });
+    });
+
+    revStep++;
+    drawRev();
+
+    if (revStep % 10 === 0) {
+      tone(300 + (revStep / REV_STEPS) * 400, 'sine', 0.04, 0.02);
+    }
+
+    if (revStep >= REV_STEPS) {
+      clearInterval(revAnimId);
+      revAnimId = null;
+      document.getElementById('revPlayBtn').disabled = false;
+      document.getElementById('revStatus').textContent = `Done. ${REV_N} samples generated. Press Generate again for different samples.`;
+      playOK();
+    }
+  }, 25);
+}
+
+function resetReverse() {
+  if (revAnimId) { clearInterval(revAnimId); revAnimId = null; }
+  document.getElementById('revPlayBtn').disabled = false;
+  revParticles = [];
+  revStep = 0;
+  drawRev();
+  document.getElementById('revStatus').textContent = 'Ready. Press Generate to sample from noise.';
+  playClick();
+}
+
+// ═══════════════════════════════════════
+// DEMO 5: DENOISING STEP-THROUGH
+// ═══════════════════════════════════════
+const cvST = document.getElementById('cvStepThru');
+const ctxST = cvST.getContext('2d');
+const ST_H = 320;
+const ST_TOTAL = 40;
+let stFrames = [];
+let stCurrent = 0;
+let stAutoTimer = null;
+
+function buildStFrames() {
+  stFrames = [];
+  // A single point denoising trajectory
+  let px = randNorm() * 2.5;
+  let py = randNorm() * 2.5;
+  for (let i = 0; i <= ST_TOTAL; i++) {
+    const tNorm = 1 - i / ST_TOTAL;
+    const sigma = 0.2 + tNorm * 4.5;
+    const s = scoreAt(px, py, sigma);
+    const noisePredX = -s.sx * sigma;
+    const noisePredY = -s.sy * sigma;
+    const denoisedX = px + s.sx * sigma * sigma / (sigma + 0.01);
+    const denoisedY = py + s.sy * sigma * sigma / (sigma + 0.01);
+
+    stFrames.push({
+      noisy: { x: px, y: py },
+      noisePred: { x: noisePredX, y: noisePredY },
+      denoised: { x: denoisedX, y: denoisedY },
+      sigma: sigma,
+      step: i,
+      desc: i === 0
+        ? `Step 0: Starting from pure noise. σ = ${sigma.toFixed(1)}. The predicted noise is large.`
+        : i < ST_TOTAL * 0.3
+        ? `Step ${i}: High noise (σ = ${sigma.toFixed(1)}). Large corrections toward data region.`
+        : i < ST_TOTAL * 0.7
+        ? `Step ${i}: Medium noise (σ = ${sigma.toFixed(1)}). Particle settling toward a specific cluster.`
+        : i < ST_TOTAL
+        ? `Step ${i}: Low noise (σ = ${sigma.toFixed(1)}). Fine-tuning position. Small corrections.`
+        : `Step ${i}: Done. Particle has arrived at a data cluster.`
+    });
+
+    // Advance particle
+    const lr = 0.06;
+    const noiseInj = Math.sqrt(lr) * tNorm * 0.15;
+    px += s.sx * lr + randNorm() * noiseInj;
+    py += s.sy * lr + randNorm() * noiseInj;
+  }
+}
+
+function resizeST() {
+  cvST.width = cvST.offsetWidth * devicePixelRatio;
+  cvST.height = ST_H * devicePixelRatio;
+  ctxST.scale(devicePixelRatio, devicePixelRatio);
+  drawST();
+}
+
+function drawST() {
+  const W = cvST.offsetWidth, H = ST_H;
+  ctxST.clearRect(0, 0, W, H);
+  ctxST.fillStyle = 'white';
+  ctxST.fillRect(0, 0, W, H);
+
+  if (stFrames.length === 0) return;
+  const f = stFrames[Math.min(stCurrent, stFrames.length - 1)];
+
+  // Three panels
+  const panelW = W / 3;
+  const titles = ['Noisy Input', 'Predicted Noise', 'Denoised Estimate'];
+  const xMin = -5, xMax = 5, yMin = -4.5, yMax = 4.5;
+
+  titles.forEach((title, pi) => {
+    const ox = pi * panelW;
+
+    // Panel border
+    if (pi > 0) {
+      ctxST.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctxST.lineWidth = 1;
+      ctxST.beginPath();
+      ctxST.moveTo(ox, 20);
+      ctxST.lineTo(ox, H - 10);
+      ctxST.stroke();
+    }
+
+    // Title
+    ctxST.fillStyle = '#7a7870';
+    ctxST.font = "9px 'DM Mono'";
+    ctxST.textAlign = 'center';
+    ctxST.fillText(title, ox + panelW / 2, 16);
+
+    const localPx = x => ox + ((x - xMin) / (xMax - xMin)) * panelW;
+    const localPy = y => 24 + (1 - (y - yMin) / (yMax - yMin)) * (H - 34);
+
+    // Ghost clusters
+    CENTERS.forEach((c, ci) => {
+      ctxST.beginPath();
+      ctxST.arc(localPx(c.x), localPy(c.y), 12, 0, Math.PI * 2);
+      ctxST.fillStyle = COLORS[ci] + '12';
+      ctxST.fill();
+    });
+
+    if (pi === 0) {
+      // Noisy point
+      ctxST.beginPath();
+      ctxST.arc(localPx(f.noisy.x), localPy(f.noisy.y), 6, 0, Math.PI * 2);
+      ctxST.fillStyle = '#c4622d';
+      ctxST.shadowColor = '#c4622d';
+      ctxST.shadowBlur = 8;
+      ctxST.fill();
+      ctxST.shadowBlur = 0;
+
+      // Show all previous positions as trail
+      for (let j = 0; j < stCurrent; j++) {
+        const pf = stFrames[j];
+        ctxST.beginPath();
+        ctxST.arc(localPx(pf.noisy.x), localPy(pf.noisy.y), 2, 0, Math.PI * 2);
+        ctxST.fillStyle = 'rgba(196,98,45,0.15)';
+        ctxST.fill();
+      }
+    } else if (pi === 1) {
+      // Noise vector as arrow from origin
+      const arrowScale = 0.5;
+      const cx = localPx(0), cy = localPy(0);
+      const ex = localPx(f.noisePred.x * arrowScale), ey = localPy(f.noisePred.y * arrowScale);
+      ctxST.beginPath();
+      ctxST.moveTo(cx, cy);
+      ctxST.lineTo(ex, ey);
+      ctxST.strokeStyle = '#6b3fa0';
+      ctxST.lineWidth = 2.5;
+      ctxST.stroke();
+      // Arrowhead
+      const ang = Math.atan2(-(ey - cy), ex - cx);
+      ctxST.fillStyle = '#6b3fa0';
+      ctxST.beginPath();
+      ctxST.moveTo(ex, ey);
+      ctxST.lineTo(ex - 8 * Math.cos(ang - 0.4), ey + 8 * Math.sin(ang - 0.4));
+      ctxST.lineTo(ex - 8 * Math.cos(ang + 0.4), ey + 8 * Math.sin(ang + 0.4));
+      ctxST.closePath();
+      ctxST.fill();
+      // Magnitude label
+      const mag = Math.sqrt(f.noisePred.x * f.noisePred.x + f.noisePred.y * f.noisePred.y);
+      ctxST.fillStyle = '#6b3fa0';
+      ctxST.font = "10px 'DM Mono'";
+      ctxST.textAlign = 'center';
+      ctxST.fillText(`|ε| = ${mag.toFixed(2)}`, ox + panelW / 2, H - 8);
+    } else {
+      // Denoised estimate
+      ctxST.beginPath();
+      ctxST.arc(localPx(f.denoised.x), localPy(f.denoised.y), 6, 0, Math.PI * 2);
+      ctxST.fillStyle = '#1a7a4a';
+      ctxST.shadowColor = '#1a7a4a';
+      ctxST.shadowBlur = 8;
+      ctxST.fill();
+      ctxST.shadowBlur = 0;
+    }
+  });
+
+  // Update counter
+  document.getElementById('stepCounter').textContent = `Step ${stCurrent} / ${ST_TOTAL}`;
+  document.getElementById('stepDesc').textContent = f.desc;
+}
+
+function stepDenFwd() {
+  if (stCurrent < ST_TOTAL) { stCurrent++; drawST(); playStep(); }
+}
+function stepDenBack() {
+  if (stCurrent > 0) { stCurrent--; drawST(); playStep(); }
+}
+function resetStepThru() {
+  if (stAutoTimer) { clearInterval(stAutoTimer); stAutoTimer = null; }
+  document.getElementById('stepAutoBtn').innerHTML = '&#9654; Auto-play';
+  buildStFrames();
+  stCurrent = 0;
+  drawST();
+  playClick();
+}
+function toggleStepAuto() {
+  if (stAutoTimer) {
+    clearInterval(stAutoTimer);
+    stAutoTimer = null;
+    document.getElementById('stepAutoBtn').innerHTML = '&#9654; Auto-play';
+    return;
+  }
+  if (stCurrent >= ST_TOTAL) { stCurrent = 0; }
+  document.getElementById('stepAutoBtn').innerHTML = '&#9646;&#9646; Pause';
+  stAutoTimer = setInterval(() => {
+    if (stCurrent >= ST_TOTAL) {
+      clearInterval(stAutoTimer);
+      stAutoTimer = null;
+      document.getElementById('stepAutoBtn').innerHTML = '&#9654; Auto-play';
+      playOK();
+      return;
+    }
+    stCurrent++;
+    drawST();
+    tone(300 + (stCurrent / ST_TOTAL) * 400, 'sine', 0.04, 0.02);
+  }, 300);
+  playClick();
+}
+
+// ═══════════════════════════════════════
+// DEMO 6: NOISE SCHEDULE COMPARISON
+// ═══════════════════════════════════════
+const cvSL = document.getElementById('cvSchedLinear');
+const ctxSL = cvSL.getContext('2d');
+const cvSC = document.getElementById('cvSchedCosine');
+const ctxSC = cvSC.getContext('2d');
+const SCHED_H = 200;
+let schedT = 0.5;
+
+function linearAlphaBar(t01) {
+  // Linear beta from 1e-4 to 0.02
+  let abar = 1;
+  const T = 1000;
+  const step = Math.round(t01 * T);
+  for (let i = 1; i <= step; i++) {
+    const beta = 1e-4 + (0.02 - 1e-4) * i / T;
+    abar *= (1 - beta);
+  }
+  return Math.max(0.001, abar);
+}
+
+function cosineAlphaBar(t01) {
+  return alphaBarAt(t01);
+}
+
+function resizeSched() {
+  cvSL.width = cvSL.offsetWidth * devicePixelRatio;
+  cvSL.height = SCHED_H * devicePixelRatio;
+  ctxSL.scale(devicePixelRatio, devicePixelRatio);
+  cvSC.width = cvSC.offsetWidth * devicePixelRatio;
+  cvSC.height = SCHED_H * devicePixelRatio;
+  ctxSC.scale(devicePixelRatio, devicePixelRatio);
+  drawSched();
+}
+
+function drawSchedPanel(ctx, canvas, alphaFn, label) {
+  const W = canvas.offsetWidth, H = SCHED_H;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, W, H);
+
+  const pad = { l: 32, r: 8, t: 8, b: 24 };
+  const gw = W - pad.l - pad.r, gh = H - pad.t - pad.b;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 0.5;
+  [0.25, 0.5, 0.75].forEach(v => {
+    const y = pad.t + gh * (1 - v);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + gw, y); ctx.stroke();
+    ctx.fillStyle = '#a0998e'; ctx.font = "8px 'DM Mono'"; ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(2), pad.l - 4, y + 3);
+  });
+
+  // Curve
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const t01 = i / 200;
+    const abar = alphaFn(t01);
+    const x = pad.l + t01 * gw;
+    const y = pad.t + (1 - abar) * gh;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#6b3fa0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Fill area
+  ctx.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const t01 = i / 200;
+    const abar = alphaFn(t01);
+    const x = pad.l + t01 * gw;
+    const y = pad.t + (1 - abar) * gh;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pad.l + gw, pad.t + gh);
+  ctx.lineTo(pad.l, pad.t + gh);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(107,63,160,0.06)';
+  ctx.fill();
+
+  // Current timestep marker
+  const curAbar = alphaFn(schedT);
+  const curX = pad.l + schedT * gw;
+  const curY = pad.t + (1 - curAbar) * gh;
+  ctx.beginPath();
+  ctx.moveTo(curX, pad.t);
+  ctx.lineTo(curX, pad.t + gh);
+  ctx.strokeStyle = '#c4622d44';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(curX, curY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#c4622d';
+  ctx.shadowColor = '#c4622d';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Value label
+  ctx.fillStyle = '#c4622d';
+  ctx.font = "10px 'DM Mono'";
+  ctx.textAlign = 'center';
+  ctx.fillText(`ᾱ = ${curAbar.toFixed(3)}`, curX, curY - 10);
+
+  // Axis labels
+  ctx.fillStyle = '#a0998e';
+  ctx.font = "8px 'DM Mono'";
+  ctx.textAlign = 'center';
+  ctx.fillText('0', pad.l, pad.t + gh + 14);
+  ctx.fillText('t/T', pad.l + gw / 2, pad.t + gh + 14);
+  ctx.fillText('1', pad.l + gw, pad.t + gh + 14);
+}
+
+function drawSched() {
+  drawSchedPanel(ctxSL, cvSL, linearAlphaBar, 'Linear');
+  drawSchedPanel(ctxSC, cvSC, cosineAlphaBar, 'Cosine');
+}
+
+function onSchedSlider(v) {
+  schedT = parseFloat(v) / 100;
+  document.getElementById('schedVal').textContent = Math.round(schedT * 1000);
+  tone(200 + parseFloat(v) * 4, 'triangle', 0.06, 0.03);
+  drawSched();
+  const la = linearAlphaBar(schedT);
+  const ca = cosineAlphaBar(schedT);
+  document.getElementById('schedStatus').textContent =
+    `t = ${Math.round(schedT*1000)}: Linear ᾱ = ${la.toFixed(2)} (${(la*100).toFixed(0)}% signal) | Cosine ᾱ = ${ca.toFixed(2)} (${(ca*100).toFixed(0)}% signal)`;
+}
+
+// ═══════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════
+function initAll() {
+  initFwd();
+  resizeFwd();
+  resizeScore();
+  resizeNS();
+  resizeRev();
+  buildStFrames();
+  resizeST();
+  resizeSched();
+}
+
+initAll();
+
+window.addEventListener('resize', () => {
+  resizeFwd();
+  resizeScore();
+  resizeNS();
+  resizeRev();
+  resizeST();
+  resizeSched();
+});
+
+// Footnote click scrolling
+document.querySelectorAll('sup a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+});
+</script>
+</body>
+</html>

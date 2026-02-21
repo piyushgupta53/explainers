@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Information Theory — Every Loss Function Is an Encoding Problem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
+
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+
+.encoding-table{width:100%;border-collapse:collapse;margin:1rem 0;font-family:'DM Sans',sans-serif;font-size:.85rem;}
+.encoding-table th{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:.5rem;border-bottom:1px solid var(--border);text-align:left;}
+.encoding-table td{padding:.5rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+.encoding-table input[type=text]{font-family:'DM Mono',monospace;font-size:.85rem;width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;background:white;color:var(--text);text-align:center;}
+.encoding-table input[type=text]:focus{outline:none;border-color:var(--accent);}
+.encoding-table .prob-cell{font-family:'DM Mono',monospace;color:var(--purple);}
+.encoding-table .cost-cell{font-family:'DM Mono',monospace;color:var(--accent);}
+
+.readout-row{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1rem;font-family:'DM Mono',monospace;font-size:.82rem;}
+.readout-item{display:flex;flex-direction:column;gap:.2rem;}
+.readout-label{font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.readout-value{font-size:1rem;font-weight:500;}
+.readout-value.purple{color:var(--purple);}
+.readout-value.accent{color:var(--accent);}
+.readout-value.green{color:var(--green);}
+.readout-value.blue{color:var(--blue);}
+
+.dist-controls{display:flex;flex-wrap:wrap;gap:.8rem;margin-bottom:1rem;}
+.dist-controls .slider-group{min-width:140px;}
+
+.side-by-side{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1rem 0;}
+@media(max-width:640px){.side-by-side{grid-template-columns:1fr;}}
+.side-panel{background:white;border:1px solid var(--border);border-radius:2px;padding:1rem;}
+.side-panel-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.8rem;}
+
+.stream-display{font-family:'DM Mono',monospace;font-size:.72rem;line-height:1.8;padding:.8rem;background:white;border:1px solid var(--border);border-radius:2px;min-height:3.5rem;word-break:break-all;margin:.8rem 0;}
+.stream-symbol{padding:1px 3px;border-radius:2px;margin:0 1px;}
+
+.bits-counter{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;margin:.5rem 0;}
+
+.class-row{display:flex;align-items:center;gap:.8rem;margin:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.82rem;}
+.class-label{min-width:60px;font-family:'DM Mono',monospace;font-size:.78rem;color:var(--muted);}
+.class-bar{height:20px;border-radius:2px;transition:width .2s;min-width:2px;}
+.class-val{font-family:'DM Mono',monospace;font-size:.78rem;min-width:40px;text-align:right;}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Information Theory &middot; 05
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Information Theory</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~25 min read</span>
+    </div>
+    <h1 class="post-title">Information Theory &mdash; Every Loss Function Is an Encoding Problem</h1>
+    <p class="post-subtitle">Cross-entropy is the most-used loss function in deep learning. It is also a statement about compression. These are the same fact.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">The Surprise of a Coin Flip</a></li>
+        <li><a href="#s2">Entropy &mdash; The Optimal Average</a></li>
+        <li><a href="#s3">Cross-Entropy &mdash; The Wrong Codebook</a></li>
+        <li><a href="#s4">KL Divergence &mdash; The Waste</a></li>
+        <li><a href="#s5">Why Direction Matters</a></li>
+        <li><a href="#s6">Every Loss Function You Know</a></li>
+        <li><a href="#s7">From Theory to Practice</a></li>
+        <li><a href="#s8">Synthesis</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Problem</span>
+    <h2>The Surprise of a Coin Flip</h2>
+
+    <p>You run a weather station that transmits one of four messages every hour: <strong>Sunny</strong>, <strong>Cloudy</strong>, <strong>Rainy</strong>, or <strong>Snowy</strong>. You pay per bit. Every bit doubles the cost of transmission. How many bits do you need per message?</p>
+
+    <p>The naive answer: four symbols, so use two bits. Sunny = <code>00</code>, Cloudy = <code>01</code>, Rainy = <code>10</code>, Snowy = <code>11</code>. Two bits per message, every message, all year long. This is clean, simple, and wasteful.</p>
+
+    <p>Wasteful because it ignores everything you know about your climate. Suppose you live in the Sahara. Sunny happens 97% of the time. Snowy has never occurred in recorded history. Paying two bits for every Sunny &mdash; the message you almost always send &mdash; is like insuring your house against meteor strikes at the same rate as fire. The cost structure is flat where the reality is not.</p>
+
+    <p>A better strategy: give Sunny a short code and Snowy a long one. If Sunny is <code>0</code> (1 bit), you pay 1 bit 97% of the time. Snowy can be <code>11100</code> (5 bits) and it barely matters &mdash; you almost never send it. The average cost per message drops below two bits.<sup><a href="#fn-1" title="This is the core idea of Huffman coding and all variable-length prefix codes.">[1]</a></sup></p>
+
+    <p>This observation &mdash; that frequent events should get short codes and rare events should get long ones &mdash; is where all of information theory begins. The question Shannon asked in 1948 was not <em>whether</em> this was true, but <em>what is the optimal code length for a symbol with probability p?</em></p>
+
+    <p>The answer is <span class="math">&minus;log<sub>2</sub>(p)</span> bits.</p>
+
+    <p>That formula deserves to be unpacked. If <em>p</em> = 1/2 (a fair coin flip), the optimal code length is <span class="math">&minus;log<sub>2</sub>(1/2) = 1</span> bit. That feels right &mdash; one bit resolves exactly one binary question. If <em>p</em> = 1/4, the code length is 2 bits. If <em>p</em> = 1/8, it is 3 bits. Each halving of probability adds exactly one bit. A rare event is literally more <em>informative</em> &mdash; it takes more bits to communicate because the recipient needs more information to distinguish it from the more likely alternatives.</p>
+
+    <p>Shannon called this quantity <strong>surprisal</strong>, or <strong>self-information</strong>: the information content of observing an event with probability <em>p</em>. The lower the probability, the higher the surprise. The connection to "surprise" is not a metaphor. It is a measurement. When someone tells you something you already expected, you learn little. When they tell you something astonishing, you learn a lot. Surprisal quantifies exactly how much.<sup><a href="#fn-2" title="Shannon, C. E. (1948). A Mathematical Theory of Communication. Bell System Technical Journal.">[2]</a></sup></p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The optimal code length for a symbol with probability <em>p</em> is <span class="math">&minus;log<sub>2</sub>(p)</span> bits. This is not a design choice &mdash; it is a provable lower bound. No prefix code can do better on average.</p>
+    </div>
+
+    <p>Try it yourself. Below is a source with four symbols. Assign bit-strings to each one and watch what it costs you.</p>
+
+    <!-- Interactive 1: Design-an-Encoding -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Design an Encoding</div>
+      <p class="interactive-setup">Assign binary codes to each symbol. The average cost updates in real-time. Can you beat the theoretical minimum? (Hint: use shorter codes for frequent symbols. Codes must be valid: non-empty, binary, and no code can be a prefix of another.)</p>
+
+      <table class="encoding-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Probability</th>
+            <th>Your Code</th>
+            <th>Bits</th>
+            <th>Optimal (&minus;log<sub>2</sub>p)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A</strong></td>
+            <td class="prob-cell">0.50</td>
+            <td><input type="text" id="enc-a" value="0" oninput="updateEncoding()"></td>
+            <td class="cost-cell" id="enc-a-bits">1</td>
+            <td class="cost-cell">1.00</td>
+          </tr>
+          <tr>
+            <td><strong>B</strong></td>
+            <td class="prob-cell">0.25</td>
+            <td><input type="text" id="enc-b" value="10" oninput="updateEncoding()"></td>
+            <td class="cost-cell" id="enc-b-bits">2</td>
+            <td class="cost-cell">2.00</td>
+          </tr>
+          <tr>
+            <td><strong>C</strong></td>
+            <td class="prob-cell">0.125</td>
+            <td><input type="text" id="enc-c" value="110" oninput="updateEncoding()"></td>
+            <td class="cost-cell" id="enc-c-bits">3</td>
+            <td class="cost-cell">3.00</td>
+          </tr>
+          <tr>
+            <td><strong>D</strong></td>
+            <td class="prob-cell">0.125</td>
+            <td><input type="text" id="enc-d" value="111" oninput="updateEncoding()"></td>
+            <td class="cost-cell" id="enc-d-bits">3</td>
+            <td class="cost-cell">3.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="readout-row">
+        <div class="readout-item">
+          <span class="readout-label">Your Average Cost</span>
+          <span class="readout-value accent" id="enc-avg">1.75</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Theoretical Minimum (Entropy)</span>
+          <span class="readout-value purple" id="enc-entropy">1.75</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Waste (Your Cost &minus; Entropy)</span>
+          <span class="readout-value green" id="enc-waste">0.00</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Prefix-Free?</span>
+          <span class="readout-value blue" id="enc-prefix">Yes</span>
+        </div>
+      </div>
+    </div>
+
+    <p>Notice that the default codes achieve exactly the theoretical minimum: 1.75 bits per message. That is because the probabilities in this example are exact powers of 1/2, so the optimal code lengths are whole numbers. In general, optimal code lengths are fractional &mdash; <span class="math">&minus;log<sub>2</sub>(0.97) &asymp; 0.044</span> bits for our Sahara station's Sunny &mdash; and you cannot actually send 0.044 bits in a single message. Practical codes like Huffman get close by rounding up. But the theoretical average, the one you can approach over thousands of messages? That is a number with a name.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Measure</span>
+    <h2>Entropy &mdash; The Optimal Average</h2>
+
+    <p>If the optimal code for a symbol with probability <em>p</em> is <span class="math">&minus;log<sub>2</sub>(p)</span> bits, and you want the average code length over all symbols, you weight each code length by how often it appears. That is just the expected value:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Shannon Entropy</span>
+      <div>H(p) = &minus;&Sigma;<sub>i</sub> p<sub>i</sub> log<sub>2</sub>(p<sub>i</sub>)</div>
+      <span class="comment">&mdash; the expected optimal code length: sum over all symbols of (probability &times; optimal code length)</span>
+    </div>
+
+    <p>Where <em>p<sub>i</sub></em> is the probability of symbol <em>i</em>, and the sum runs over all symbols in the alphabet. For our 4-symbol example: <span class="math">H = 0.5 &times; 1 + 0.25 &times; 2 + 0.125 &times; 3 + 0.125 &times; 3 = 1.75 bits</span>. This is the absolute minimum average cost. No encoding scheme, no matter how clever, can get below it.<sup><a href="#fn-3" title="Shannon's source coding theorem (1948) proves this: the expected code length is bounded below by the entropy.">[3]</a></sup></p>
+
+    <p>But entropy is more than a compression bound. It measures <strong>uncertainty</strong>. A source where all outcomes are equally likely has maximum entropy &mdash; nothing is predictable, so every message carries maximum information. A source where one outcome dominates has low entropy &mdash; most messages are unsurprising, so there is little information to transmit.</p>
+
+    <p>The extreme cases make this concrete. A fair coin: <span class="math">H = &minus;(0.5 &times; log<sub>2</sub>(0.5) + 0.5 &times; log<sub>2</sub>(0.5)) = 1 bit</span>. Maximum uncertainty for two outcomes. A completely biased coin that always lands heads: <span class="math">H = &minus;(1 &times; log<sub>2</sub>(1)) = 0 bits</span>. Zero uncertainty &mdash; you already know the answer before flipping. Between these extremes, entropy traces a smooth curve. Try it.</p>
+
+    <!-- Interactive 2: Entropy Slider -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Entropy Slider</div>
+      <p class="interactive-setup">Drag the distribution from uniform to peaked. Watch entropy drop from its maximum (log<sub>2</sub>(4) = 2 bits) toward zero. The bar chart shows the distribution; the readout shows H in bits.</p>
+
+      <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start;">
+        <div style="flex:1;min-width:200px;">
+          <div class="slider-group">
+            <span>Concentration:</span>
+            <input type="range" id="entropy-slider" min="0" max="100" value="0" oninput="updateEntropy()">
+            <span class="slider-val" id="entropy-slider-val">0</span>
+          </div>
+          <div style="margin-top:.4rem;font-family:'DM Sans',sans-serif;font-size:.72rem;color:var(--muted);">0 = uniform &nbsp; 100 = all mass on one symbol</div>
+        </div>
+        <div class="readout-item" style="min-width:120px;">
+          <span class="readout-label">Entropy</span>
+          <span class="readout-value purple" id="entropy-readout">2.000 bits</span>
+        </div>
+        <div class="readout-item" style="min-width:120px;">
+          <span class="readout-label">Maximum Possible</span>
+          <span class="readout-value blue" id="entropy-max-readout">2.000 bits</span>
+        </div>
+      </div>
+      <canvas id="entropy-canvas" height="180" style="margin-top:1rem;background:white;border:1px solid var(--border);"></canvas>
+    </div>
+
+    <p>Two things to notice. First, entropy is maximized when the distribution is uniform &mdash; all four symbols equally likely at 0.25 each, giving <span class="math">H = log<sub>2</sub>(4) = 2 bits</span>. That is the most uncertain a 4-symbol source can be. Second, entropy drops gently at first as you concentrate mass, then collapses rapidly as you approach certainty. This matches intuition: a source that is "mostly fair but slightly biased" is almost as uncertain as a perfectly fair one. But once one symbol dominates, uncertainty evaporates.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>The base of the logarithm determines the unit. Base 2 gives <strong>bits</strong> (binary digits). Base <em>e</em> gives <strong>nats</strong> (natural units), which is what your code computes when it calls <code>Math.log()</code> instead of <code>Math.log2()</code>. Machine learning almost always uses nats internally, because the natural log simplifies calculus. The concepts are identical; only the units change. 1 nat &asymp; 1.443 bits.</p>
+    </div>
+
+    <p>So far, everything is about a single source and its own optimal code. The interesting &mdash; and practical &mdash; question is: what happens when you use the <em>wrong</em> code?</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Wrong Codebook</span>
+    <h2>Cross-Entropy &mdash; The Wrong Codebook</h2>
+
+    <p>Imagine you design a code based on the assumption that all four weather symbols are equally likely &mdash; 2 bits each. But the true source is the Sahara station: Sunny 97%, Cloudy 2%, Rainy 0.8%, Snowy 0.2%. Your code works. Every message decodes correctly. But your average cost per message is 2 bits, when the true entropy is only <span class="math">H &asymp; 0.24 bits</span>. You are paying 8 times more than necessary.</p>
+
+    <p>This is the situation every machine learning model faces. The true distribution of the data is <em>p</em>. The model's belief is <em>q</em>. The model builds its "codebook" &mdash; its predictions, its probability assignments &mdash; based on <em>q</em>. But the actual data comes from <em>p</em>. The average cost of encoding data from <em>p</em> using codes designed for <em>q</em> has a name: <strong>cross-entropy</strong>.</p>
+
+    <div class="math-block">
+      <span class="eq-label">Cross-Entropy</span>
+      <div>H(p, q) = &minus;&Sigma;<sub>i</sub> p<sub>i</sub> log<sub>2</sub>(q<sub>i</sub>)</div>
+      <span class="comment">&mdash; the expected code length when the true source is p but you use the codebook designed for q</span>
+      <div style="margin-top:.5rem">Compare with entropy: H(p) = &minus;&Sigma;<sub>i</sub> p<sub>i</sub> log<sub>2</sub>(p<sub>i</sub>)</div>
+      <span class="comment">&mdash; the only difference: log(q) instead of log(p). You are measuring the cost of q's codes against p's reality.</span>
+    </div>
+
+    <p>The notation is crucial. <span class="math">H(p, q)</span> is <em>not</em> symmetric: <span class="math">H(p, q) &ne; H(q, p)</span>. The first argument is always the true distribution (the one generating the data). The second argument is the model (the one providing the codebook). Swapping them asks a different question entirely &mdash; "how well does <em>p</em>'s codebook work for data from <em>q</em>?" &mdash; which is irrelevant when you are trying to evaluate your model.</p>
+
+    <p>Here is the key property: cross-entropy is always at least as large as entropy. <span class="math">H(p, q) &ge; H(p)</span>. The wrong codebook always costs at least as much as the right one, and usually more. Equality holds only when <em>q</em> = <em>p</em> &mdash; when the model perfectly matches reality.</p>
+
+    <p>This is why cross-entropy works as a loss function. Minimizing <span class="math">H(p, q)</span> with respect to <em>q</em> pushes <em>q</em> toward <em>p</em>. The loss goes down exactly when the model's predictions get closer to the truth. And the floor &mdash; the irreducible minimum &mdash; is the entropy <span class="math">H(p)</span>, which depends only on the data and not on the model at all.</p>
+
+    <!-- Interactive 3: Cross-Entropy Calculator -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Cross-Entropy Calculator</div>
+      <p class="interactive-setup">Adjust both distributions: p (true, blue) and q (model, orange). Watch H(p,q), H(p), and D<sub>KL</sub>(p||q) update simultaneously. Notice that H(p,q) = H(p) + D<sub>KL</sub> &mdash; the cross-entropy is always the entropy plus the waste.</p>
+
+      <div class="dist-controls">
+        <div class="slider-group">
+          <span>p<sub>1</sub>:</span>
+          <input type="range" id="ce-p1" min="1" max="99" value="50" oninput="updateCE()">
+          <span class="slider-val" id="ce-p1-val">0.50</span>
+        </div>
+        <div class="slider-group">
+          <span>q<sub>1</sub>:</span>
+          <input type="range" id="ce-q1" min="1" max="99" value="50" oninput="updateCE()">
+          <span class="slider-val" id="ce-q1-val">0.50</span>
+        </div>
+      </div>
+
+      <canvas id="ce-canvas" height="200" style="background:white;border:1px solid var(--border);"></canvas>
+
+      <div class="readout-row" style="margin-top:1rem;">
+        <div class="readout-item">
+          <span class="readout-label">H(p) &mdash; Entropy</span>
+          <span class="readout-value purple" id="ce-hp">1.000</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">H(p, q) &mdash; Cross-Entropy</span>
+          <span class="readout-value accent" id="ce-hpq">1.000</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">D<sub>KL</sub>(p || q) &mdash; KL Divergence</span>
+          <span class="readout-value green" id="ce-kl">0.000</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">Suppose the true distribution p is [0.9, 0.1] and your model q is [0.5, 0.5]. What is the cross-entropy H(p, q)?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf1', '', '&#10007; That is the entropy H(p), not the cross-entropy. H(p) uses log(p); cross-entropy uses log(q). When the model is wrong, H(p,q) &gt; H(p).')">0.469 bits</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf1', '&#10003; Correct. H(p,q) = &minus;(0.9 &times; log&#8322;(0.5) + 0.1 &times; log&#8322;(0.5)) = &minus;(0.9 &times; (&minus;1) + 0.1 &times; (&minus;1)) = 1.0 bit. The uniform model assigns 1 bit to everything, ignoring that one outcome is 9x more likely.', '')">1.000 bits</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf1', '', '&#10007; That would be H(q,p): using p&#39;s codebook for q&#39;s data. Cross-entropy is not symmetric &mdash; the arguments are not interchangeable.')">0.531 bits</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Waste</span>
+    <h2>KL Divergence &mdash; The Waste</h2>
+
+    <p>Cross-entropy bundles two things together: the irreducible cost of the data (entropy), and the additional cost of using the wrong model (waste). To isolate the waste, subtract the entropy from the cross-entropy:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Kullback-Leibler Divergence</span>
+      <div>D<sub>KL</sub>(p || q) = H(p, q) &minus; H(p) = &Sigma;<sub>i</sub> p<sub>i</sub> log<sub>2</sub>(p<sub>i</sub> / q<sub>i</sub>)</div>
+      <span class="comment">&mdash; the extra bits per message you pay because you used q's codes instead of p's</span>
+      <div style="margin-top:.5rem">Equivalently: D<sub>KL</sub>(p || q) = &Sigma;<sub>i</sub> p<sub>i</sub> [log<sub>2</sub>(p<sub>i</sub>) &minus; log<sub>2</sub>(q<sub>i</sub>)]</div>
+      <span class="comment">&mdash; for each symbol: the difference between the optimal code length and the code length you actually used, weighted by how often that symbol actually occurs</span>
+    </div>
+
+    <p>Let us parse every piece. The term inside the sum, <span class="math">log<sub>2</sub>(p<sub>i</sub>/q<sub>i</sub>)</span>, is the difference in code lengths: the length your model assigns minus the optimal length. When <span class="math">q<sub>i</sub> &lt; p<sub>i</sub></span>, your model underestimates the frequency of symbol <em>i</em>, assigning it a code that is too long. That term is positive &mdash; you pay extra. When <span class="math">q<sub>i</sub> &gt; p<sub>i</sub></span>, your model overestimates symbol <em>i</em>, wasting precious short codes on an unlikely event. The weighting by <em>p<sub>i</sub></em> ensures that waste on common symbols matters more than waste on rare ones.</p>
+
+    <p>KL divergence is always non-negative. <span class="math">D<sub>KL</sub>(p || q) &ge; 0</span>, with equality if and only if <em>p</em> = <em>q</em>. This is called <strong>Gibbs' inequality</strong>, and it says something physical: you cannot do better than the optimal code. Every deviation from perfection costs you.<sup><a href="#fn-4" title="Gibbs' inequality can be proved using Jensen's inequality and the concavity of the logarithm.">[4]</a></sup></p>
+
+    <p>Worked example. True distribution <em>p</em> = [0.9, 0.1], model <em>q</em> = [0.5, 0.5]. The KL divergence is:</p>
+
+    <p><span class="math">D<sub>KL</sub> = 0.9 &times; log<sub>2</sub>(0.9/0.5) + 0.1 &times; log<sub>2</sub>(0.1/0.5) = 0.9 &times; 0.848 + 0.1 &times; (&minus;2.322) = 0.763 &minus; 0.232 = 0.531 bits</span></p>
+
+    <p>You pay an extra 0.531 bits per message because your uniform model ignores the bias. The entropy is 0.469 bits, so the cross-entropy is 0.469 + 0.531 = 1.0 bit &mdash; consistent with what we computed in the quiz above.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>Cross-entropy = entropy + KL divergence. Always. <span class="math">H(p,q) = H(p) + D<sub>KL</sub>(p||q)</span>. Since H(p) is fixed for a given dataset, minimizing cross-entropy <em>is</em> minimizing KL divergence. This is why cross-entropy loss works: it directly reduces the gap between model and reality.</p>
+    </div>
+
+    <p>But "extra bits" can feel abstract. Below, you can watch the waste accumulate in real time.</p>
+
+    <!-- Interactive 5: Bits Accumulation -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Bits Accumulation</div>
+      <p class="interactive-setup">Click Start to stream symbols from the source. Two codebooks encode each symbol: the optimal one (blue) and a mismatched one (orange). Watch the total bits accumulate. The widening gap between the two lines <em>is</em> the KL divergence, made visible.</p>
+
+      <canvas id="bits-canvas" height="220" style="background:white;border:1px solid var(--border);"></canvas>
+
+      <div id="bits-stream" class="stream-display" style="min-height:2.5rem;max-height:4rem;overflow-y:auto;"></div>
+
+      <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:.5rem;">
+        <button class="btn primary" id="bits-start-btn" onclick="startBitsStream()">&#9654; Start</button>
+        <button class="btn" onclick="resetBitsStream()">&#8634; Reset</button>
+        <span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);" id="bits-status">Ready</span>
+      </div>
+
+      <div class="readout-row" style="margin-top:.8rem;">
+        <div class="readout-item">
+          <span class="readout-label">Optimal Total Bits</span>
+          <span class="readout-value blue" id="bits-optimal">0</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Mismatched Total Bits</span>
+          <span class="readout-value accent" id="bits-mismatch">0</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Wasted Bits (Gap)</span>
+          <span class="readout-value green" id="bits-waste">0</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">KL per Symbol (Running)</span>
+          <span class="readout-value purple" id="bits-kl-running">0.000</span>
+        </div>
+      </div>
+    </div>
+
+    <p>The gap widens steadily, not erratically. That linearity is KL divergence in action: it is a <em>rate</em> of waste, measured in bits per symbol. After 100 symbols from a source where the optimal code averages 1.75 bits and the mismatched code averages 2.50 bits, you have wasted 75 bits total. That is 0.75 wasted bits per symbol, and it is exactly the KL divergence between the two distributions.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; Asymmetry</span>
+    <h2>Why Direction Matters</h2>
+
+    <p>KL divergence is not symmetric. <span class="math">D<sub>KL</sub>(p || q) &ne; D<sub>KL</sub>(q || p)</span>. This is not a quirk of the definition &mdash; it reflects something real about what each direction measures, and it changes which algorithm you get when you optimize.</p>
+
+    <p>Consider a true distribution <em>p</em> that is bimodal: a mixture of two Gaussians, one centered at &minus;3 and one at +3. You are fitting a single Gaussian <em>q</em> to approximate it. Where should <em>q</em> sit?</p>
+
+    <p><strong>Forward KL: <span class="math">D<sub>KL</sub>(p || q)</span></strong> &mdash; minimize the waste when encoding <em>p</em>'s data with <em>q</em>'s codebook. This penalizes <em>q</em> wherever <em>p</em> has mass but <em>q</em> does not. If <em>q</em> misses either mode of <em>p</em>, the log<sub>2</sub>(p/q) term blows up for those samples. To avoid infinite penalty, <em>q</em> must spread out to cover <strong>both</strong> modes. The result: <em>q</em> centers at 0 with a large variance, covering everything but fitting nothing tightly. This is called <strong>mode-covering</strong> or <strong>mass-covering</strong> behavior.</p>
+
+    <p><strong>Reverse KL: <span class="math">D<sub>KL</sub>(q || p)</span></strong> &mdash; minimize the waste when encoding <em>q</em>'s data with <em>p</em>'s codebook. Now the penalty is weighted by <em>q</em>, not <em>p</em>. Where <em>q</em> is zero, the term vanishes regardless of <em>p</em>. So <em>q</em> can ignore entire regions where <em>p</em> has mass without penalty &mdash; as long as <em>q</em> does not place mass where <em>p</em> is zero. The result: <em>q</em> collapses onto a <strong>single mode</strong> of <em>p</em> and fits it tightly. This is called <strong>mode-seeking</strong> or <strong>zero-forcing</strong> behavior.<sup><a href="#fn-5" title="Mode-covering vs mode-seeking: Bishop (2006), Pattern Recognition and Machine Learning, Chapter 10.">[5]</a></sup></p>
+
+    <p>The practical consequences are enormous. Maximum likelihood estimation minimizes forward KL. Variational inference minimizes reverse KL. These are not two ways to solve the same problem &mdash; they solve different problems and produce qualitatively different approximations.</p>
+
+    <!-- Interactive 4: KL Direction Matters -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; KL Direction Matters</div>
+      <p class="interactive-setup">Toggle between forward and reverse KL. The blue curve is the true bimodal distribution p. The orange curve is the best single-Gaussian approximation q under each objective. Notice how forward KL covers both modes (but fits neither well), while reverse KL locks onto one mode precisely.</p>
+
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem;">
+        <button class="btn primary" id="kl-btn-forward" onclick="setKLMode('forward')">Forward KL: D<sub>KL</sub>(p||q)</button>
+        <button class="btn" id="kl-btn-reverse" onclick="setKLMode('reverse')">Reverse KL: D<sub>KL</sub>(q||p)</button>
+      </div>
+
+      <canvas id="kl-canvas" height="260" style="background:white;border:1px solid var(--border);"></canvas>
+
+      <div id="kl-explanation" style="margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;min-height:3em;">
+        <strong>Forward KL (mode-covering):</strong> q must cover everywhere p has mass. The fitted Gaussian spreads wide to avoid leaving any of p's mass uncovered. It sits between the two modes, fitting neither tightly.
+      </div>
+
+      <div class="readout-row" style="margin-top:.6rem;">
+        <div class="readout-item">
+          <span class="readout-label">Fitted &mu;</span>
+          <span class="readout-value accent" id="kl-mu">0.00</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">Fitted &sigma;</span>
+          <span class="readout-value accent" id="kl-sigma">3.50</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">KL Value</span>
+          <span class="readout-value purple" id="kl-value">0.000</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">You are training a variational autoencoder (VAE). The ELBO objective involves minimizing D<sub>KL</sub>(q(z|x) || p(z)), where q is the encoder and p(z) is the prior. Which behavior does this encourage?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf2', '', '&#10007; Mode-covering is the behavior of forward KL, where the weight is on the true distribution. In the VAE objective, the KL is D(q||p) &mdash; reverse direction &mdash; so q avoids placing mass where p is zero.')">Mode-covering: q spreads to match the full prior</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf2', '&#10003; Correct. D<sub>KL</sub>(q||p) is reverse KL. It penalizes q for placing mass where p is zero, but ignores regions where p has mass that q misses. This pushes the encoder to produce latents that stay within the prior&#39;s support, even if it doesn&#39;t use all of it.', '')">Mode-seeking: q concentrates within the prior's support</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf2', '', '&#10007; KL divergence is always asymmetric. The direction determines whether you get mode-covering or mode-seeking behavior, and the two give qualitatively different results.')">It does not matter &mdash; KL is approximately symmetric for typical distributions</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Connections</span>
+    <h2>Every Loss Function You Know</h2>
+
+    <p>Here is the claim that ties everything together: the cross-entropy loss you compute during training, the log-likelihood you maximize in statistics, and the KL divergence you minimize in variational inference are all the same operation, seen from different angles.</p>
+
+    <h3>Cross-entropy loss is negative log-likelihood</h3>
+
+    <p>In classification, your model outputs a probability distribution <em>q</em> over classes for each input. The true label is a one-hot distribution <em>p</em>: all mass on the correct class <em>c</em>. The cross-entropy simplifies:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Cross-Entropy with One-Hot Labels</span>
+      <div>H(p, q) = &minus;&Sigma;<sub>i</sub> p<sub>i</sub> log(q<sub>i</sub>) = &minus;log(q<sub>c</sub>)</div>
+      <span class="comment">&mdash; since p is one-hot, only the term where p<sub>i</sub> = 1 survives: the negative log probability of the correct class</span>
+    </div>
+
+    <p>This is exactly negative log-likelihood. Maximizing the likelihood of the data under the model is the same as minimizing cross-entropy, which is the same as minimizing KL divergence (since the entropy of one-hot labels is zero). Three perspectives, one gradient.</p>
+
+    <h3>Minimizing cross-entropy is minimizing KL</h3>
+
+    <p>When your training data is fixed, <span class="math">H(p)</span> is a constant. It does not depend on your model's parameters. So:</p>
+
+    <p><span class="math">arg min<sub>q</sub> H(p, q) = arg min<sub>q</sub> [H(p) + D<sub>KL</sub>(p || q)] = arg min<sub>q</sub> D<sub>KL</sub>(p || q)</span></p>
+
+    <p>Minimizing cross-entropy and minimizing KL divergence give the exact same parameter updates, the exact same optimal <em>q</em>, the exact same trained model. The only difference is a constant offset in the loss value. This is why you can use cross-entropy as a loss function and interpret the result as "the model that wastes the fewest bits."</p>
+
+    <h3>Maximum likelihood is forward KL minimization</h3>
+
+    <p>Maximum likelihood estimation (MLE) fits the model <em>q</em> to maximize <span class="math">&Sigma;<sub>i</sub> log q(x<sub>i</sub>)</span>. Dividing by the number of samples and adding a constant, this is equivalent to minimizing <span class="math">D<sub>KL</sub>(&hat;p</sub> || q)</span>, where <span class="math">&hat;p</span> is the empirical distribution of the training data. Forward KL, always. This is why MLE produces mode-covering models &mdash; they try to assign probability to everything the data shows, even at the cost of spreading thin.<sup><a href="#fn-6" title="The equivalence of MLE and forward KL minimization is shown in Murphy (2012), Machine Learning: A Probabilistic Perspective, Section 8.1.">[6]</a></sup></p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>Three names, one optimization: minimizing cross-entropy loss = maximizing log-likelihood = minimizing KL divergence (forward direction, up to a constant). When someone says "we trained with cross-entropy loss," they are saying "we minimized the KL divergence between the data distribution and the model."</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; Practice</span>
+    <h2>From Theory to Practice</h2>
+
+    <p>Theory says minimizing cross-entropy is minimizing wasted bits. But in practice, what does that look like inside a classifier? The model takes an input, passes it through layers of transformations, and produces a vector of raw scores &mdash; called <strong>logits</strong> &mdash; one per class. These logits have no probabilistic interpretation. They can be negative, they do not sum to 1, and their magnitudes are arbitrary.</p>
+
+    <p>The <strong>softmax</strong> function converts logits to probabilities:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Softmax</span>
+      <div>q<sub>i</sub> = exp(z<sub>i</sub>) / &Sigma;<sub>j</sub> exp(z<sub>j</sub>)</div>
+      <span class="comment">&mdash; exponentiate each logit, then normalize so the outputs sum to 1</span>
+    </div>
+
+    <p>Where <em>z<sub>i</sub></em> is the logit for class <em>i</em>. The exponential ensures all values are positive; the normalization ensures they form a valid probability distribution. The cross-entropy loss then measures how well this distribution matches the true label.</p>
+
+    <p>There is a subtlety here that matters for training. Suppose the correct class is <em>c</em> and the model assigns <span class="math">q<sub>c</sub> = 0.95</span>. The loss is <span class="math">&minus;log(0.95) = 0.051</span>. If <span class="math">q<sub>c</sub> = 0.5</span>, the loss is <span class="math">&minus;log(0.5) = 0.693</span>. If <span class="math">q<sub>c</sub> = 0.01</span>, the loss is <span class="math">&minus;log(0.01) = 4.605</span>. The log penalizes confident wrong predictions catastrophically. Getting 99% wrong costs far more than getting 50% wrong. This asymmetric penalty is not a design choice &mdash; it emerges from the encoding interpretation. A model that is confidently wrong is like using a very long code for a very common symbol. The bits accumulate fast.</p>
+
+    <!-- Interactive 6: Cross-Entropy as Loss Function -->
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Cross-Entropy Loss in Classification</div>
+      <p class="interactive-setup">A 3-class classification problem. The true label is "Cat." Adjust the model's predicted probabilities and watch the cross-entropy loss update. Notice how the loss explodes when the model assigns low probability to the correct class.</p>
+
+      <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start;">
+        <div style="flex:1;min-width:240px;">
+          <div class="slider-group" style="margin-bottom:.6rem;">
+            <span style="min-width:80px;">P(Cat):</span>
+            <input type="range" id="cls-cat" min="1" max="98" value="70" oninput="updateClassifier()">
+            <span class="slider-val" id="cls-cat-val">0.70</span>
+          </div>
+          <div class="slider-group" style="margin-bottom:.6rem;">
+            <span style="min-width:80px;">P(Dog):</span>
+            <input type="range" id="cls-dog" min="1" max="98" value="20" oninput="updateClassifier()">
+            <span class="slider-val" id="cls-dog-val">0.20</span>
+          </div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);margin-bottom:.3rem;">
+            P(Bird): <span id="cls-bird-val" style="font-family:'DM Mono',monospace;color:var(--accent);">0.10</span> (computed as 1 &minus; P(Cat) &minus; P(Dog))
+          </div>
+        </div>
+        <div style="min-width:200px;">
+          <canvas id="cls-canvas" height="180" style="background:white;border:1px solid var(--border);width:100%;"></canvas>
+        </div>
+      </div>
+
+      <div class="readout-row" style="margin-top:1rem;">
+        <div class="readout-item">
+          <span class="readout-label">Cross-Entropy Loss</span>
+          <span class="readout-value accent" id="cls-loss">0.357</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">&minus;log(P(Cat))</span>
+          <span class="readout-value purple" id="cls-neglog">0.357</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">True Label</span>
+          <span class="readout-value blue">Cat</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Temperature and confidence</h3>
+
+    <p>There is one more knob that connects information theory to modern practice: <strong>temperature</strong>. Dividing logits by a temperature <em>T</em> before softmax changes the entropy of the output distribution:</p>
+
+    <p><span class="math">q<sub>i</sub> = exp(z<sub>i</sub>/T) / &Sigma;<sub>j</sub> exp(z<sub>j</sub>/T)</span></p>
+
+    <p>When <em>T</em> = 1, you get the standard softmax. When <em>T</em> &rarr; 0, the distribution collapses to a one-hot vector on the largest logit &mdash; maximum confidence, zero entropy. When <em>T</em> &rarr; &infin;, the distribution approaches uniform &mdash; minimum confidence, maximum entropy. Temperature controls where the model sits on the entropy spectrum.</p>
+
+    <p>This is not a metaphor. Temperature literally controls how many bits the model's predictions carry. A high-temperature model hedges its bets across classes, like a weather station that always says "maybe sunny, maybe cloudy." A low-temperature model commits, like one that always says "sunny" &mdash; right or wrong. Knowledge distillation uses a high temperature to reveal the teacher model's soft beliefs about wrong classes; those soft targets carry more information (more bits) than hard labels.</p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">Your classification model consistently achieves a cross-entropy loss of 0.02 on training data. You know the labels are one-hot. What does this imply about the model's predicted probability for the correct class?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf3', '', '&#10007; If P(correct) = 0.50, the loss would be &minus;log(0.50) = 0.693 &mdash; much higher than 0.02. A loss of 0.02 requires near-certainty.')">The model assigns roughly 50% to the correct class</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, true, 'qf3', '&#10003; Correct. &minus;log(q) = 0.02 implies q = e^(&minus;0.02) &asymp; 0.98. The model is 98% confident in the right answer. But beware: low training loss can mean overfitting, not genuine understanding.', '')">The model assigns roughly 98% to the correct class</button>
+        <button class="quiz-opt" onclick="handleQuiz(this, false, 'qf3', '', '&#10007; A loss of 0 would mean &minus;log(1) = 0, so infinite confidence. A loss of 0.02 is close to zero but not there yet &mdash; it corresponds to about 98% confidence.')">The model has memorized the labels with 100% confidence</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VIII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s8">VIII. &mdash; Synthesis</span>
+    <h2>Synthesis</h2>
+
+    <p>The path we have walked is short but it covers a lot of ground. It started with a physical question &mdash; how many bits do you need to transmit a message? &mdash; and ended inside the training loop of every modern neural network.</p>
+
+    <p>Here is the chain, from bottom to top. <strong>Surprisal</strong> (<span class="math">&minus;log p</span>) tells you the optimal code length for a single event. <strong>Entropy</strong> (<span class="math">H(p)</span>) takes the average, giving you the minimum achievable bits per message for a source. <strong>Cross-entropy</strong> (<span class="math">H(p,q)</span>) measures what you actually pay when your codebook is built from the wrong distribution. <strong>KL divergence</strong> (<span class="math">D<sub>KL</sub>(p||q)</span>) isolates the gap &mdash; the pure waste, the extra bits, the information-theoretic distance between belief and reality.</p>
+
+    <p>These are not four separate concepts. They are four views of one idea: the cost of being wrong about a probability distribution, measured in the universal currency of bits.</p>
+
+    <p>When a neural network trains on cross-entropy loss, it is doing exactly what Shannon's theory says it should: adjusting its parameters to reduce the number of wasted bits. Each gradient step shrinks the gap between the model's implicit code and the optimal code for the data. When the loss plateaus, the model has found the best codebook it can represent &mdash; and any remaining loss above the entropy is structure in the data that this architecture cannot capture.</p>
+
+    <p>The notation that looked opaque &mdash; <span class="math">H(p,q)</span>, <span class="math">D<sub>KL</sub>(p||q)</span>, the asymmetry, the logs &mdash; is notation for something tactile: the sound of bits accumulating on a wire, the waste of a bad encoding, the gap between a model's beliefs and the world. Shannon did not invent an abstraction and then go looking for applications. He stared at a concrete engineering problem &mdash; how to transmit messages reliably over a noisy channel &mdash; and discovered that the solution required a precise theory of uncertainty. The formulas did not precede the intuition. The intuition, pursued with care, forced the formulas into existence. That they also happen to govern how every modern classifier learns is not a coincidence. It is the same problem, seen from the other side of the wire.<sup><a href="#fn-7" title="Shannon's paper was written while he was at Bell Labs, where the engineering problem of telephone transmission demanded a rigorous theory of communication.">[7]</a></sup></p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote" id="fn-1">
+        <span class="fn-num">[1]</span>
+        <span>This principle underlies Huffman coding (1952) and all variable-length prefix codes. Huffman's algorithm constructs the optimal prefix code given known symbol probabilities. Arithmetic coding (Rissanen &amp; Langdon, 1979) goes further, approaching Shannon's entropy bound more closely by encoding entire messages rather than individual symbols.</span>
+      </div>
+      <div class="footnote" id="fn-2">
+        <span class="fn-num">[2]</span>
+        <span>Shannon, C. E. (1948). "A Mathematical Theory of Communication." <em>Bell System Technical Journal</em>, 27(3), 379&ndash;423. The paper that created the field. Shannon proved that the entropy rate is the fundamental limit of lossless compression.</span>
+      </div>
+      <div class="footnote" id="fn-3">
+        <span class="fn-num">[3]</span>
+        <span>Shannon's source coding theorem (noiseless coding theorem): for any uniquely decodable code, the expected code length satisfies L &ge; H(X), with equality achievable in the limit as message length approaches infinity.</span>
+      </div>
+      <div class="footnote" id="fn-4">
+        <span class="fn-num">[4]</span>
+        <span>Gibbs' inequality: D<sub>KL</sub>(p||q) &ge; 0, proved using Jensen's inequality applied to the convex function &minus;log. The physical interpretation: you cannot compress below the entropy, so using any code other than the optimal one wastes bits.</span>
+      </div>
+      <div class="footnote" id="fn-5">
+        <span class="fn-num">[5]</span>
+        <span>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>, Chapter 10. The mode-covering vs. mode-seeking distinction is central to understanding why variational inference (reverse KL) produces different approximations than expectation propagation (forward KL).</span>
+      </div>
+      <div class="footnote" id="fn-6">
+        <span class="fn-num">[6]</span>
+        <span>Murphy, K. P. (2012). <em>Machine Learning: A Probabilistic Perspective</em>, Section 8.1. The equivalence holds because the log-likelihood of the data under q is &minus;H(&hat;p, q) times the number of samples, where &hat;p is the empirical distribution.</span>
+      </div>
+      <div class="footnote" id="fn-7">
+        <span class="fn-num">[7]</span>
+        <span>Shannon was not working in the abstract. His day job at Bell Labs involved optimizing telephone and telegraph systems. The mathematical theory of communication was, first and foremost, an engineering contribution. Its application to machine learning came decades later but was implicit from the start.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (h > 0 ? (scrollY / h * 100) : 0) + '%';
+});
+
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// INTERACTIVE 1: DESIGN-AN-ENCODING
+// ═══════════════════════════════════════
+const encProbs = [0.5, 0.25, 0.125, 0.125];
+const encIds = ['enc-a', 'enc-b', 'enc-c', 'enc-d'];
+
+function updateEncoding() {
+  const codes = encIds.map(id => document.getElementById(id).value.trim());
+  let totalCost = 0;
+  let valid = true;
+
+  // Check binary validity
+  for (let i = 0; i < codes.length; i++) {
+    const c = codes[i];
+    const isBinary = /^[01]+$/.test(c) && c.length > 0;
+    document.getElementById(encIds[i] + '-bits').textContent = isBinary ? c.length : '?';
+    if (!isBinary) { valid = false; }
+    else { totalCost += encProbs[i] * c.length; }
+  }
+
+  // Check prefix-free property
+  let prefixFree = true;
+  if (valid) {
+    for (let i = 0; i < codes.length; i++) {
+      for (let j = 0; j < codes.length; j++) {
+        if (i !== j && codes[j].startsWith(codes[i])) {
+          prefixFree = false;
+        }
+      }
+    }
+  }
+
+  const entropy = -encProbs.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+
+  document.getElementById('enc-avg').textContent = valid ? totalCost.toFixed(3) : '---';
+  document.getElementById('enc-entropy').textContent = entropy.toFixed(3);
+  document.getElementById('enc-waste').textContent = valid ? (totalCost - entropy).toFixed(3) : '---';
+  document.getElementById('enc-prefix').textContent = !valid ? '---' : (prefixFree ? 'Yes' : 'No');
+  document.getElementById('enc-prefix').style.color = !valid ? '' : (prefixFree ? 'var(--green)' : '#c0392b');
+
+  tone(200 + (valid ? totalCost * 120 : 0), 'triangle', 0.06, 0.03);
+}
+
+// ═══════════════════════════════════════
+// INTERACTIVE 2: ENTROPY SLIDER
+// ═══════════════════════════════════════
+const entropyCanvas = document.getElementById('entropy-canvas');
+const entropyCtx = entropyCanvas.getContext('2d');
+
+function resizeEntropyCanvas() {
+  entropyCanvas.width = entropyCanvas.offsetWidth * devicePixelRatio;
+  entropyCanvas.height = 180 * devicePixelRatio;
+  entropyCtx.scale(devicePixelRatio, devicePixelRatio);
+  updateEntropy();
+}
+
+function getEntropyDist(concentration) {
+  // concentration 0 = uniform, 100 = all on first symbol
+  const t = concentration / 100;
+  const n = 4;
+  const base = 1 / n;
+  const probs = [];
+  // Concentrate mass on first symbol
+  const p0 = base + t * (1 - base);
+  const pRest = (1 - p0) / (n - 1);
+  probs.push(p0);
+  for (let i = 1; i < n; i++) probs.push(Math.max(pRest, 0.0001));
+  // Normalize
+  const s = probs.reduce((a, b) => a + b, 0);
+  return probs.map(p => p / s);
+}
+
+function updateEntropy() {
+  const val = parseInt(document.getElementById('entropy-slider').value);
+  document.getElementById('entropy-slider-val').textContent = val;
+  const probs = getEntropyDist(val);
+  const H = -probs.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+  const maxH = Math.log2(4);
+
+  document.getElementById('entropy-readout').textContent = H.toFixed(3) + ' bits';
+  document.getElementById('entropy-max-readout').textContent = maxH.toFixed(3) + ' bits';
+
+  // Draw bar chart
+  const W = entropyCanvas.offsetWidth, HH = 180;
+  const pad = { l: 40, r: 16, t: 28, b: 40 };
+  const gw = W - pad.l - pad.r, gh = HH - pad.t - pad.b;
+
+  entropyCtx.clearRect(0, 0, W, HH);
+
+  // Grid lines
+  [0.25, 0.5, 0.75, 1.0].forEach(v => {
+    const y = pad.t + gh * (1 - v);
+    entropyCtx.beginPath(); entropyCtx.moveTo(pad.l, y); entropyCtx.lineTo(pad.l + gw, y);
+    entropyCtx.strokeStyle = 'rgba(0,0,0,0.06)'; entropyCtx.lineWidth = 0.8; entropyCtx.stroke();
+    entropyCtx.fillStyle = '#a0998e'; entropyCtx.font = "9px 'DM Mono'"; entropyCtx.textAlign = 'right';
+    entropyCtx.fillText(v.toFixed(2), pad.l - 4, y + 3);
+  });
+
+  // Bars
+  const labels = ['A', 'B', 'C', 'D'];
+  const n = probs.length;
+  const barW = gw / n;
+  probs.forEach((p, i) => {
+    const barH = gh * p;
+    const x = pad.l + i * barW + barW * 0.15;
+    const w = barW * 0.7;
+    const y = pad.t + gh - barH;
+
+    // Bar with gradient feel
+    entropyCtx.fillStyle = '#2a5db0cc';
+    entropyCtx.fillRect(x, y, w, barH);
+
+    // Value label
+    entropyCtx.fillStyle = '#7a7870'; entropyCtx.font = "10px 'DM Mono'"; entropyCtx.textAlign = 'center';
+    entropyCtx.fillText(p.toFixed(3), pad.l + i * barW + barW / 2, y - 6);
+
+    // Category label
+    entropyCtx.fillStyle = '#7a7870'; entropyCtx.font = "11px 'DM Sans'";
+    entropyCtx.fillText(labels[i], pad.l + i * barW + barW / 2, pad.t + gh + 18);
+  });
+
+  // Entropy bar at top
+  const entropyBarW = gw * (H / maxH);
+  entropyCtx.fillStyle = '#6b3fa022';
+  entropyCtx.fillRect(pad.l, pad.t - 18, gw, 10);
+  entropyCtx.fillStyle = '#6b3fa0aa';
+  entropyCtx.fillRect(pad.l, pad.t - 18, entropyBarW, 10);
+  entropyCtx.fillStyle = '#6b3fa0'; entropyCtx.font = "9px 'DM Mono'"; entropyCtx.textAlign = 'left';
+  entropyCtx.fillText('H = ' + H.toFixed(3), pad.l + entropyBarW + 6, pad.t - 10);
+
+  tone(250 + H * 200, 'triangle', 0.06, 0.03);
+}
+
+resizeEntropyCanvas();
+window.addEventListener('resize', resizeEntropyCanvas);
+
+// ═══════════════════════════════════════
+// INTERACTIVE 3: CROSS-ENTROPY CALCULATOR
+// ═══════════════════════════════════════
+const ceCanvas = document.getElementById('ce-canvas');
+const ceCtx = ceCanvas.getContext('2d');
+
+function resizeCECanvas() {
+  ceCanvas.width = ceCanvas.offsetWidth * devicePixelRatio;
+  ceCanvas.height = 200 * devicePixelRatio;
+  ceCtx.scale(devicePixelRatio, devicePixelRatio);
+  updateCE();
+}
+
+function updateCE() {
+  const p1 = parseInt(document.getElementById('ce-p1').value) / 100;
+  const q1 = parseInt(document.getElementById('ce-q1').value) / 100;
+  const p = [p1, 1 - p1];
+  const q = [q1, 1 - q1];
+
+  document.getElementById('ce-p1-val').textContent = p1.toFixed(2);
+  document.getElementById('ce-q1-val').textContent = q1.toFixed(2);
+
+  const Hp = -p.reduce((s, pi) => s + (pi > 0 ? pi * Math.log2(pi) : 0), 0);
+  const Hpq = -p.reduce((s, pi, i) => s + (pi > 0 && q[i] > 0 ? pi * Math.log2(q[i]) : 0), 0);
+  const KL = Hpq - Hp;
+
+  document.getElementById('ce-hp').textContent = Hp.toFixed(4);
+  document.getElementById('ce-hpq').textContent = Hpq.toFixed(4);
+  document.getElementById('ce-kl').textContent = KL.toFixed(4);
+
+  // Draw side-by-side bar charts
+  const W = ceCanvas.offsetWidth, HH = 200;
+  const pad = { l: 40, r: 16, t: 20, b: 50 };
+  const gw = W - pad.l - pad.r, gh = HH - pad.t - pad.b;
+
+  ceCtx.clearRect(0, 0, W, HH);
+
+  // Grid
+  [0.25, 0.5, 0.75, 1.0].forEach(v => {
+    const y = pad.t + gh * (1 - v);
+    ceCtx.beginPath(); ceCtx.moveTo(pad.l, y); ceCtx.lineTo(pad.l + gw, y);
+    ceCtx.strokeStyle = 'rgba(0,0,0,0.06)'; ceCtx.lineWidth = 0.8; ceCtx.stroke();
+    ceCtx.fillStyle = '#a0998e'; ceCtx.font = "9px 'DM Mono'"; ceCtx.textAlign = 'right';
+    ceCtx.fillText(v.toFixed(2), pad.l - 4, y + 3);
+  });
+
+  const groupW = gw / 2;
+  const barW = groupW * 0.3;
+  const gap = groupW * 0.08;
+  const labels = ['Symbol 1', 'Symbol 2'];
+
+  for (let i = 0; i < 2; i++) {
+    const cx = pad.l + i * groupW + groupW / 2;
+
+    // p bar (blue)
+    const pH = gh * p[i];
+    const px = cx - barW - gap / 2;
+    ceCtx.fillStyle = '#2a5db0bb';
+    ceCtx.fillRect(px, pad.t + gh - pH, barW, pH);
+    ceCtx.fillStyle = '#2a5db0'; ceCtx.font = "9px 'DM Mono'"; ceCtx.textAlign = 'center';
+    ceCtx.fillText(p[i].toFixed(2), px + barW / 2, pad.t + gh - pH - 4);
+
+    // q bar (orange)
+    const qH = gh * q[i];
+    const qx = cx + gap / 2;
+    ceCtx.fillStyle = '#c4622dbb';
+    ceCtx.fillRect(qx, pad.t + gh - qH, barW, qH);
+    ceCtx.fillStyle = '#c4622d'; ceCtx.font = "9px 'DM Mono'"; ceCtx.textAlign = 'center';
+    ceCtx.fillText(q[i].toFixed(2), qx + barW / 2, pad.t + gh - qH - 4);
+
+    // Label
+    ceCtx.fillStyle = '#7a7870'; ceCtx.font = "10px 'DM Sans'"; ceCtx.textAlign = 'center';
+    ceCtx.fillText(labels[i], cx, pad.t + gh + 18);
+  }
+
+  // Legend
+  ceCtx.fillStyle = '#2a5db0bb'; ceCtx.fillRect(pad.l, pad.t + gh + 32, 10, 10);
+  ceCtx.fillStyle = '#7a7870'; ceCtx.font = "10px 'DM Sans'"; ceCtx.textAlign = 'left';
+  ceCtx.fillText('p (true)', pad.l + 14, pad.t + gh + 41);
+
+  ceCtx.fillStyle = '#c4622dbb'; ceCtx.fillRect(pad.l + 80, pad.t + gh + 32, 10, 10);
+  ceCtx.fillStyle = '#7a7870';
+  ceCtx.fillText('q (model)', pad.l + 94, pad.t + gh + 41);
+
+  tone(250 + KL * 300, 'triangle', 0.06, 0.03);
+}
+
+resizeCECanvas();
+window.addEventListener('resize', resizeCECanvas);
+
+// ═══════════════════════════════════════
+// INTERACTIVE 4: KL DIRECTION MATTERS
+// ═══════════════════════════════════════
+const klCanvas = document.getElementById('kl-canvas');
+const klCtx = klCanvas.getContext('2d');
+let klMode = 'forward';
+
+// Bimodal true distribution: mixture of two Gaussians
+function gaussianPDF(x, mu, sigma) {
+  return (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
+}
+
+function pTrue(x) {
+  return 0.5 * gaussianPDF(x, -3, 1.0) + 0.5 * gaussianPDF(x, 3, 1.0);
+}
+
+// Optimal q under each KL direction (pre-computed for illustration)
+const klParams = {
+  forward:  { mu: 0.0, sigma: 3.5 },  // mode-covering: wide, centered
+  reverse:  { mu: 3.0, sigma: 1.0 }   // mode-seeking: tight, one mode
+};
+
+function setKLMode(m) {
+  klMode = m;
+  document.getElementById('kl-btn-forward').className = m === 'forward' ? 'btn primary' : 'btn';
+  document.getElementById('kl-btn-reverse').className = m === 'reverse' ? 'btn primary' : 'btn';
+
+  const params = klParams[m];
+  document.getElementById('kl-mu').textContent = params.mu.toFixed(2);
+  document.getElementById('kl-sigma').textContent = params.sigma.toFixed(2);
+
+  if (m === 'forward') {
+    document.getElementById('kl-explanation').innerHTML = '<strong>Forward KL (mode-covering):</strong> q must cover everywhere p has mass. The fitted Gaussian spreads wide to avoid leaving any of p\'s mass uncovered. It sits between the two modes, fitting neither tightly.';
+  } else {
+    document.getElementById('kl-explanation').innerHTML = '<strong>Reverse KL (mode-seeking):</strong> q only pays for mass it places where p is low. It collapses onto one mode and fits it precisely, completely ignoring the other mode. Zero penalty for the missed mass.';
+  }
+
+  // Compute approximate KL
+  const params_q = klParams[m];
+  let klVal = 0;
+  const dx = 0.05;
+  for (let x = -10; x <= 10; x += dx) {
+    const px = pTrue(x);
+    const qx = gaussianPDF(x, params_q.mu, params_q.sigma);
+    if (m === 'forward') {
+      if (px > 1e-10 && qx > 1e-10) klVal += px * Math.log2(px / qx) * dx;
+    } else {
+      if (qx > 1e-10 && px > 1e-10) klVal += qx * Math.log2(qx / px) * dx;
+    }
+  }
+  document.getElementById('kl-value').textContent = Math.max(0, klVal).toFixed(3);
+
+  drawKL();
+  playClick();
+}
+
+function resizeKLCanvas() {
+  klCanvas.width = klCanvas.offsetWidth * devicePixelRatio;
+  klCanvas.height = 260 * devicePixelRatio;
+  klCtx.scale(devicePixelRatio, devicePixelRatio);
+  drawKL();
+}
+
+function drawKL() {
+  const W = klCanvas.offsetWidth, HH = 260;
+  const pad = { l: 40, r: 16, t: 20, b: 36 };
+  const gw = W - pad.l - pad.r, gh = HH - pad.t - pad.b;
+
+  klCtx.clearRect(0, 0, W, HH);
+
+  const xMin = -8, xMax = 8;
+  function px(x) { return pad.l + (x - xMin) / (xMax - xMin) * gw; }
+
+  // Find max y for scaling
+  let maxY = 0;
+  for (let x = xMin; x <= xMax; x += 0.1) {
+    maxY = Math.max(maxY, pTrue(x));
+  }
+  maxY *= 1.15;
+  function py(y) { return pad.t + gh * (1 - y / maxY); }
+
+  // Grid
+  klCtx.beginPath(); klCtx.moveTo(pad.l, pad.t + gh); klCtx.lineTo(pad.l + gw, pad.t + gh);
+  klCtx.strokeStyle = '#e2dfd8'; klCtx.lineWidth = 1; klCtx.stroke();
+
+  // X-axis labels
+  klCtx.fillStyle = '#a0998e'; klCtx.font = "9px 'DM Mono'"; klCtx.textAlign = 'center';
+  for (let x = -6; x <= 6; x += 3) {
+    klCtx.fillText(x, px(x), pad.t + gh + 16);
+  }
+
+  // Draw p (true) - filled area
+  klCtx.beginPath();
+  klCtx.moveTo(px(xMin), py(0));
+  for (let x = xMin; x <= xMax; x += 0.05) {
+    klCtx.lineTo(px(x), py(pTrue(x)));
+  }
+  klCtx.lineTo(px(xMax), py(0));
+  klCtx.closePath();
+  klCtx.fillStyle = 'rgba(42,93,176,0.12)';
+  klCtx.fill();
+
+  // Draw p curve
+  klCtx.beginPath();
+  for (let x = xMin; x <= xMax; x += 0.05) {
+    const sx = px(x), sy = py(pTrue(x));
+    x === xMin ? klCtx.moveTo(sx, sy) : klCtx.lineTo(sx, sy);
+  }
+  klCtx.strokeStyle = '#2a5db0'; klCtx.lineWidth = 2.5; klCtx.stroke();
+
+  // Draw q (model) - filled area
+  const params = klParams[klMode];
+  klCtx.beginPath();
+  klCtx.moveTo(px(xMin), py(0));
+  for (let x = xMin; x <= xMax; x += 0.05) {
+    klCtx.lineTo(px(x), py(gaussianPDF(x, params.mu, params.sigma)));
+  }
+  klCtx.lineTo(px(xMax), py(0));
+  klCtx.closePath();
+  klCtx.fillStyle = 'rgba(196,98,45,0.12)';
+  klCtx.fill();
+
+  // Draw q curve
+  klCtx.beginPath();
+  for (let x = xMin; x <= xMax; x += 0.05) {
+    const sx = px(x), sy = py(gaussianPDF(x, params.mu, params.sigma));
+    x === xMin ? klCtx.moveTo(sx, sy) : klCtx.lineTo(sx, sy);
+  }
+  klCtx.strokeStyle = '#c4622d'; klCtx.lineWidth = 2.5; klCtx.stroke();
+
+  // Legend
+  klCtx.fillStyle = '#2a5db0'; klCtx.font = "11px 'DM Sans'"; klCtx.textAlign = 'left';
+  klCtx.fillText('p (true)', pad.l + 8, pad.t + 14);
+  klCtx.fillStyle = '#c4622d';
+  klCtx.fillText('q (fitted)', pad.l + 8, pad.t + 30);
+}
+
+resizeKLCanvas();
+window.addEventListener('resize', resizeKLCanvas);
+
+// ═══════════════════════════════════════
+// INTERACTIVE 5: BITS ACCUMULATION
+// ═══════════════════════════════════════
+const bitsCanvas = document.getElementById('bits-canvas');
+const bitsCtx = bitsCanvas.getContext('2d');
+
+// Source distribution p and mismatched model q
+const bitsP = [0.5, 0.25, 0.125, 0.125];
+const bitsQ = [0.25, 0.25, 0.25, 0.25]; // uniform = mismatched
+const bitsLabels = ['A', 'B', 'C', 'D'];
+const bitsColors = ['#2a5db0', '#6b3fa0', '#1a7a4a', '#c4622d'];
+
+let bitsData = [];  // [{symbol, optBits, misBits}]
+let bitsTimer = null;
+let bitsOptTotal = 0;
+let bitsMisTotal = 0;
+
+function resizeBitsCanvas() {
+  bitsCanvas.width = bitsCanvas.offsetWidth * devicePixelRatio;
+  bitsCanvas.height = 220 * devicePixelRatio;
+  bitsCtx.scale(devicePixelRatio, devicePixelRatio);
+  drawBitsChart();
+}
+
+function sampleSymbol() {
+  const r = Math.random();
+  let cum = 0;
+  for (let i = 0; i < bitsP.length; i++) {
+    cum += bitsP[i];
+    if (r < cum) return i;
+  }
+  return bitsP.length - 1;
+}
+
+function startBitsStream() {
+  if (bitsTimer) return;
+  document.getElementById('bits-start-btn').disabled = true;
+  document.getElementById('bits-status').textContent = 'Streaming...';
+  let count = 0;
+  const maxCount = 80;
+
+  bitsTimer = setInterval(() => {
+    const sym = sampleSymbol();
+    const optBits = -Math.log2(bitsP[sym]);
+    const misBits = -Math.log2(bitsQ[sym]);
+    bitsOptTotal += optBits;
+    bitsMisTotal += misBits;
+    bitsData.push({ symbol: sym, optBits, misBits });
+
+    // Update stream display
+    const streamEl = document.getElementById('bits-stream');
+    const span = document.createElement('span');
+    span.className = 'stream-symbol';
+    span.style.background = bitsColors[sym] + '22';
+    span.style.color = bitsColors[sym];
+    span.textContent = bitsLabels[sym];
+    streamEl.appendChild(span);
+    streamEl.scrollTop = streamEl.scrollHeight;
+
+    // Update readouts
+    document.getElementById('bits-optimal').textContent = bitsOptTotal.toFixed(1);
+    document.getElementById('bits-mismatch').textContent = bitsMisTotal.toFixed(1);
+    document.getElementById('bits-waste').textContent = (bitsMisTotal - bitsOptTotal).toFixed(1);
+    document.getElementById('bits-kl-running').textContent = bitsData.length > 0
+      ? ((bitsMisTotal - bitsOptTotal) / bitsData.length).toFixed(3)
+      : '0.000';
+
+    drawBitsChart();
+    tone(300 + optBits * 80, 'sine', 0.05, 0.02);
+
+    count++;
+    if (count >= maxCount) {
+      clearInterval(bitsTimer);
+      bitsTimer = null;
+      document.getElementById('bits-start-btn').disabled = false;
+      document.getElementById('bits-status').textContent = 'Done (' + bitsData.length + ' symbols)';
+      playOK();
+    }
+  }, 90);
+}
+
+function resetBitsStream() {
+  if (bitsTimer) { clearInterval(bitsTimer); bitsTimer = null; }
+  bitsData = [];
+  bitsOptTotal = 0;
+  bitsMisTotal = 0;
+  document.getElementById('bits-stream').innerHTML = '';
+  document.getElementById('bits-optimal').textContent = '0';
+  document.getElementById('bits-mismatch').textContent = '0';
+  document.getElementById('bits-waste').textContent = '0';
+  document.getElementById('bits-kl-running').textContent = '0.000';
+  document.getElementById('bits-start-btn').disabled = false;
+  document.getElementById('bits-status').textContent = 'Ready';
+  drawBitsChart();
+  playClick();
+}
+
+function drawBitsChart() {
+  const W = bitsCanvas.offsetWidth, HH = 220;
+  const pad = { l: 50, r: 16, t: 20, b: 36 };
+  const gw = W - pad.l - pad.r, gh = HH - pad.t - pad.b;
+
+  bitsCtx.clearRect(0, 0, W, HH);
+
+  if (bitsData.length < 1) {
+    bitsCtx.fillStyle = '#a0998e'; bitsCtx.font = "11px 'DM Sans'"; bitsCtx.textAlign = 'center';
+    bitsCtx.fillText('Click Start to stream symbols', W / 2, HH / 2);
+    return;
+  }
+
+  // Compute cumulative sums
+  let optCum = [0], misCum = [0];
+  for (let i = 0; i < bitsData.length; i++) {
+    optCum.push(optCum[i] + bitsData[i].optBits);
+    misCum.push(misCum[i] + bitsData[i].misBits);
+  }
+
+  const maxBits = Math.max(misCum[misCum.length - 1], optCum[optCum.length - 1], 1);
+  const maxN = bitsData.length;
+
+  function px(i) { return pad.l + gw * (i / maxN); }
+  function py(v) { return pad.t + gh * (1 - v / (maxBits * 1.1)); }
+
+  // Grid
+  bitsCtx.strokeStyle = 'rgba(0,0,0,0.06)'; bitsCtx.lineWidth = 0.8;
+  for (let t = 0.25; t <= 1; t += 0.25) {
+    const y = pad.t + gh * (1 - t);
+    bitsCtx.beginPath(); bitsCtx.moveTo(pad.l, y); bitsCtx.lineTo(pad.l + gw, y); bitsCtx.stroke();
+  }
+
+  // Axis
+  bitsCtx.strokeStyle = '#e2dfd8'; bitsCtx.lineWidth = 1;
+  bitsCtx.beginPath(); bitsCtx.moveTo(pad.l, pad.t + gh); bitsCtx.lineTo(pad.l + gw, pad.t + gh); bitsCtx.stroke();
+
+  // Waste area (fill between curves)
+  bitsCtx.beginPath();
+  for (let i = 0; i <= maxN; i++) bitsCtx.lineTo(px(i), py(misCum[i]));
+  for (let i = maxN; i >= 0; i--) bitsCtx.lineTo(px(i), py(optCum[i]));
+  bitsCtx.closePath();
+  bitsCtx.fillStyle = 'rgba(26,122,74,0.1)';
+  bitsCtx.fill();
+
+  // Optimal line (blue)
+  bitsCtx.beginPath();
+  for (let i = 0; i <= maxN; i++) {
+    i === 0 ? bitsCtx.moveTo(px(i), py(optCum[i])) : bitsCtx.lineTo(px(i), py(optCum[i]));
+  }
+  bitsCtx.strokeStyle = '#2a5db0'; bitsCtx.lineWidth = 2.5; bitsCtx.stroke();
+
+  // Mismatched line (orange)
+  bitsCtx.beginPath();
+  for (let i = 0; i <= maxN; i++) {
+    i === 0 ? bitsCtx.moveTo(px(i), py(misCum[i])) : bitsCtx.lineTo(px(i), py(misCum[i]));
+  }
+  bitsCtx.strokeStyle = '#c4622d'; bitsCtx.lineWidth = 2.5; bitsCtx.stroke();
+
+  // End dots
+  bitsCtx.beginPath(); bitsCtx.arc(px(maxN), py(optCum[maxN]), 4, 0, Math.PI * 2);
+  bitsCtx.fillStyle = '#2a5db0'; bitsCtx.fill();
+  bitsCtx.beginPath(); bitsCtx.arc(px(maxN), py(misCum[maxN]), 4, 0, Math.PI * 2);
+  bitsCtx.fillStyle = '#c4622d'; bitsCtx.fill();
+
+  // Labels
+  bitsCtx.font = "10px 'DM Sans'"; bitsCtx.textAlign = 'left';
+  bitsCtx.fillStyle = '#2a5db0';
+  bitsCtx.fillText('Optimal', px(maxN) + 8, py(optCum[maxN]) + 4);
+  bitsCtx.fillStyle = '#c4622d';
+  bitsCtx.fillText('Mismatched', px(maxN) + 8, py(misCum[maxN]) + 4);
+
+  // Waste label
+  const midIdx = Math.floor(maxN / 2);
+  if (midIdx > 0) {
+    const midY = (py(optCum[midIdx]) + py(misCum[midIdx])) / 2;
+    bitsCtx.fillStyle = '#1a7a4a'; bitsCtx.font = "9px 'DM Mono'"; bitsCtx.textAlign = 'center';
+    bitsCtx.fillText('waste', px(midIdx), midY);
+  }
+
+  // Y-axis label
+  bitsCtx.save();
+  bitsCtx.translate(14, pad.t + gh / 2);
+  bitsCtx.rotate(-Math.PI / 2);
+  bitsCtx.fillStyle = '#a0998e'; bitsCtx.font = "9px 'DM Mono'"; bitsCtx.textAlign = 'center';
+  bitsCtx.fillText('Total bits', 0, 0);
+  bitsCtx.restore();
+
+  // X-axis label
+  bitsCtx.fillStyle = '#a0998e'; bitsCtx.font = "9px 'DM Mono'"; bitsCtx.textAlign = 'center';
+  bitsCtx.fillText('Symbols', pad.l + gw / 2, pad.t + gh + 24);
+}
+
+resizeBitsCanvas();
+window.addEventListener('resize', resizeBitsCanvas);
+
+// ═══════════════════════════════════════
+// INTERACTIVE 6: CLASSIFICATION LOSS
+// ═══════════════════════════════════════
+const clsCanvas = document.getElementById('cls-canvas');
+const clsCtx = clsCanvas.getContext('2d');
+
+function resizeClsCanvas() {
+  clsCanvas.width = clsCanvas.offsetWidth * devicePixelRatio;
+  clsCanvas.height = 180 * devicePixelRatio;
+  clsCtx.scale(devicePixelRatio, devicePixelRatio);
+  updateClassifier();
+}
+
+function updateClassifier() {
+  let pCat = parseInt(document.getElementById('cls-cat').value) / 100;
+  let pDog = parseInt(document.getElementById('cls-dog').value) / 100;
+
+  // Ensure valid probabilities
+  if (pCat + pDog > 0.99) {
+    pDog = 0.99 - pCat;
+    document.getElementById('cls-dog').value = Math.round(pDog * 100);
+  }
+  let pBird = Math.max(0.01, 1 - pCat - pDog);
+  // Renormalize
+  const total = pCat + pDog + pBird;
+  pCat /= total; pDog /= total; pBird /= total;
+
+  document.getElementById('cls-cat-val').textContent = pCat.toFixed(2);
+  document.getElementById('cls-dog-val').textContent = pDog.toFixed(2);
+  document.getElementById('cls-bird-val').textContent = pBird.toFixed(2);
+
+  const loss = -Math.log(pCat); // natural log for nats (typical in ML)
+  const neglog = -Math.log(pCat);
+
+  document.getElementById('cls-loss').textContent = loss.toFixed(3);
+  document.getElementById('cls-neglog').textContent = neglog.toFixed(3);
+
+  drawClassifier(pCat, pDog, pBird);
+  tone(200 + pCat * 400, 'triangle', 0.06, 0.03);
+}
+
+function drawClassifier(pCat, pDog, pBird) {
+  const W = clsCanvas.offsetWidth, HH = 180;
+  const pad = { l: 50, r: 20, t: 15, b: 15 };
+  const gw = W - pad.l - pad.r, gh = HH - pad.t - pad.b;
+
+  clsCtx.clearRect(0, 0, W, HH);
+
+  const probs = [pCat, pDog, pBird];
+  const labels = ['Cat', 'Dog', 'Bird'];
+  const colors = ['#2a5db0', '#c4622d', '#1a7a4a'];
+  const barH = gh / 3 - 12;
+
+  probs.forEach((p, i) => {
+    const y = pad.t + i * (barH + 12);
+    const barW = gw * p;
+
+    // Background
+    clsCtx.fillStyle = '#f3f1ec';
+    clsCtx.fillRect(pad.l, y, gw, barH);
+
+    // Bar
+    clsCtx.fillStyle = colors[i] + (i === 0 ? 'cc' : '88');
+    clsCtx.fillRect(pad.l, y, barW, barH);
+
+    // Highlight correct class
+    if (i === 0) {
+      clsCtx.strokeStyle = '#2a5db0';
+      clsCtx.lineWidth = 2;
+      clsCtx.strokeRect(pad.l, y, gw, barH);
+    }
+
+    // Label
+    clsCtx.fillStyle = '#7a7870'; clsCtx.font = "10px 'DM Mono'"; clsCtx.textAlign = 'right';
+    clsCtx.fillText(labels[i], pad.l - 6, y + barH / 2 + 4);
+
+    // Value
+    clsCtx.fillStyle = colors[i]; clsCtx.font = "10px 'DM Mono'"; clsCtx.textAlign = 'left';
+    clsCtx.fillText(p.toFixed(2), pad.l + barW + 6, y + barH / 2 + 4);
+  });
+
+  // "True label" marker
+  clsCtx.fillStyle = '#2a5db0'; clsCtx.font = "9px 'DM Sans'"; clsCtx.textAlign = 'left';
+  clsCtx.fillText('(true label)', pad.l + gw * probs[0] + 40, pad.t + barH / 2 + 4);
+}
+
+resizeClsCanvas();
+window.addEventListener('resize', resizeClsCanvas);
+
+// ═══════════════════════════════════════
+// FOOTNOTE SCROLL
+// ═══════════════════════════════════════
+document.querySelectorAll('sup a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.style.background = 'var(--accent-light)';
+      setTimeout(() => { target.style.background = ''; }, 2000);
+    }
+  });
+});
+</script>
+</body>
+</html>

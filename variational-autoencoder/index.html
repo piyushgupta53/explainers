@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Variational Autoencoder — When Guessing Becomes Generating</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+/* PROGRESS BAR */
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+/* MASTHEAD */
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+/* TABLE OF CONTENTS */
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+/* PROSE */
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
+
+/* CALLOUTS */
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+/* MATH BLOCK */
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+/* INTERACTIVE BLOCKS */
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* SLIDERS */
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+/* QUIZZES */
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+/* FOOTNOTES */
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+
+.dual-panel{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+@media(max-width:640px){.dual-panel{grid-template-columns:1fr;}}
+.panel-title{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem;text-align:center;}
+
+.elbo-step{padding:1rem 1.2rem;margin:.6rem 0;border:1px solid var(--border);background:white;cursor:pointer;transition:all .2s;border-radius:2px;}
+.elbo-step:hover{border-color:var(--accent);background:var(--accent-light);}
+.elbo-step.revealed{border-color:var(--purple);background:var(--purple-light);}
+.elbo-step .step-num{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.3rem;}
+.elbo-step .step-math{font-family:'DM Mono',monospace;font-size:.85rem;color:var(--purple);line-height:1.8;display:none;}
+.elbo-step.revealed .step-math{display:block;}
+.elbo-step .step-prose{font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--muted);line-height:1.5;display:none;margin-top:.4rem;}
+.elbo-step.revealed .step-prose{display:block;}
+.elbo-step .step-teaser{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--text);line-height:1.5;}
+.elbo-step.revealed .step-teaser{display:none;}
+
+.graph-node{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;}
+.reparam-desc{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-top:.8rem;min-height:2.5em;}
+
+.encoder-bars{display:flex;gap:2px;align-items:flex-end;justify-content:center;height:80px;margin-top:.5rem;}
+.encoder-bar{width:14px;background:var(--blue);border-radius:1px 1px 0 0;transition:height .2s;}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Deep Learning &middot; 06
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Deep Learning</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~28 min read</span>
+    </div>
+    <h1 class="post-title">The Variational Autoencoder &mdash; When Guessing Becomes Generating</h1>
+    <p class="post-subtitle">Add one constraint to an autoencoder and the decoder stops reconstructing. It starts creating.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">The Hole in the Map</a></li>
+        <li><a href="#s2">Blur the Dots</a></li>
+        <li><a href="#s3">Backprop Through Randomness</a></li>
+        <li><a href="#s4">The ELBO &mdash; Brick by Brick</a></li>
+        <li><a href="#s5">The Dial Between Reconstruction and Generation</a></li>
+        <li><a href="#s6">Geometry of the Latent Space</a></li>
+        <li><a href="#s7">The Decoder Is the Generator</a></li>
+        <li><a href="#s8">Synthesis</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- HERO DEMO: AE vs VAE Latent Spaces                -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <p style="margin-top:3rem;font-style:italic;color:var(--muted);font-size:1.02rem;">Two latent spaces. Same data. Click anywhere in each one to generate from that point.</p>
+
+    <div class="interactive-block" id="hero-demo">
+      <div class="interactive-label">Interactive &mdash; Latent Space: AE vs. VAE</div>
+      <p class="interactive-setup">Click or drag in either latent space. The autoencoder's space has dead zones between clusters &mdash; click there and the output is noise. The VAE's space is smooth everywhere. Notice the difference.</p>
+      <div class="dual-panel">
+        <div>
+          <div class="panel-title">Autoencoder</div>
+          <canvas id="ae-canvas" height="280" style="cursor:crosshair;border:1px solid var(--border);background:white;"></canvas>
+          <div id="ae-out" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.4rem;text-align:center;">Click to decode</div>
+        </div>
+        <div>
+          <div class="panel-title">VAE</div>
+          <canvas id="vae-canvas" height="280" style="cursor:crosshair;border:1px solid var(--border);background:white;"></canvas>
+          <div id="vae-out" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);margin-top:.4rem;text-align:center;">Click to decode</div>
+        </div>
+      </div>
+    </div>
+
+    <p>The left panel is a standard autoencoder trained on simple shapes &mdash; circles, squares, triangles. Its latent space has tight clusters with emptiness between them. Click between clusters: garbage. The right panel is a VAE trained on the same data. The clusters overlap, the space is filled, and every point decodes to something coherent. The transition from one shape to another is smooth.</p>
+
+    <p>One architectural change produces this difference. The rest of this explainer is about what that change is, why it works, and what it costs.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I — The Problem                            -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Problem</span>
+    <h2>The Hole in the Map</h2>
+
+    <p>In the <a href="../autoencoders/index.html" style="color:var(--accent);">autoencoder explainer</a>, we built a system with three parts: encoder, bottleneck, decoder. We trained it to reconstruct its input through a narrow passage, and the bottleneck learned a compressed coordinate system for the data &mdash; a map where similar inputs land near each other and different inputs land far apart.</p>
+
+    <p>That map has a problem. It has <em>holes</em>.</p>
+
+    <p>Train a standard autoencoder on 10,000 handwritten digits and plot the 2D latent codes. You'll see ten clusters &mdash; one per digit. The 3s cluster here, the 7s cluster there, with clear separation between them. Good for classification. Terrible for generation. Because between those clusters, there's <em>nothing</em>. The encoder never mapped any training data to those coordinates. The decoder has never seen them. Ask the decoder to reconstruct from a point in the gap and it produces incoherent noise &mdash; pixel values that correspond to no digit anyone has ever written.</p>
+
+    <p>The autoencoder learned to compress, but it didn't learn a <em>complete</em> map. It learned an archipelago &mdash; islands of meaning in a sea of nonsense.<sup><a href="#fn-1" title="This is sometimes called the 'swiss cheese' problem in latent space.">[1]</a></sup></p>
+
+    <p>This matters because generation requires completeness. If you want to sample a random latent code and decode it into a plausible image, you need the decoder to produce something coherent <em>everywhere</em> &mdash; not just at the points it happened to see during training. The standard autoencoder has no mechanism to ensure this. It optimizes reconstruction and nothing else.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>A standard autoencoder's latent space is a <strong>lookup table with gaps</strong>. It maps training data to codes and codes back to data, but it has no obligation to produce anything meaningful for codes between training points. The decoder is only reliable where the encoder has been.</p>
+    </div>
+
+    <p>So the question is: how do you fill the gaps?</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II — The Fix                               -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Fix</span>
+    <h2>Blur the Dots</h2>
+
+    <p>Here is the idea, stripped to its core. In a standard autoencoder, the encoder maps each input to a single point in latent space. A dot. What if, instead, the encoder mapped each input to a <em>cloud</em>?</p>
+
+    <p>Not a point <span class="math">z</span>, but a Gaussian distribution <span class="math">N(&mu;, &sigma;&sup2;)</span>. The encoder outputs two vectors: <strong>&mu;</strong> (the mean &mdash; where the cloud is centered) and <strong>&sigma;</strong> (the standard deviation &mdash; how wide the cloud spreads). During training, we don't pass the mean to the decoder. We <em>sample</em> from the cloud and pass the sample. The decoder must reconstruct from wherever the sample lands.</p>
+
+    <p>This forces the decoder to handle imprecision. If the cloud for a "3" has standard deviation 0.5 in some latent dimension, the decoder must produce a recognizable 3 whether it receives 1.0 or 1.8 in that dimension. That makes the decoder robust to small perturbations &mdash; but it doesn't fill the gaps between clusters. A cloud centered at [2, 3] with small standard deviation still leaves the region around [-1, -1] empty.</p>
+
+    <p>The second ingredient does the real work. Add a penalty that pushes every encoder distribution toward the same target: a standard Gaussian, <span class="math">N(0, 1)</span>. This is the <strong>KL divergence</strong> term, and its effect is dramatic. The encoder wants to place different inputs in different regions (for reconstruction), but the KL penalty wants all distributions to collapse onto <span class="math">N(0, 1)</span>. The equilibrium between these two forces spreads the clouds until they overlap, filling the latent space with a smooth, continuous density.<sup><a href="#fn-2" title="Kingma & Welling (2014), 'Auto-Encoding Variational Bayes.' ICLR.">[2]</a></sup></p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Encoder's Output</div>
+      <p class="interactive-setup">Each colored ellipse represents one input's encoding &mdash; not a point, but a Gaussian. Drag the KL weight slider: at 0, the distributions are tight and separated. As KL increases, they spread toward N(0,1) and begin to overlap. Too much KL and they collapse into one blob.</p>
+      <canvas id="encoder-canvas" height="320"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>KL weight:</span>
+          <input type="range" id="enc-kl" min="0" max="200" step="1" value="0" oninput="onEncKL(this.value)">
+          <span class="slider-val" id="enc-kl-val">0.00</span>
+        </div>
+        <span id="enc-desc" style="font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);">No KL penalty &mdash; tight, separated clusters with dead zones.</span>
+      </div>
+    </div>
+
+    <p>At KL weight 0, the encoder places each class in its own tight island. Maximum separation, perfect reconstruction, no coverage of the gaps. At KL weight 1.0, the distributions have spread enough to overlap &mdash; every region of latent space is covered by at least one class's distribution. The decoder must handle the overlap, which forces it to learn smooth transitions. Push KL beyond 1.0 and the distributions collapse: everything looks the same, reconstruction quality collapses, but every sample is "valid."</p>
+
+    <p>The KL weight = 1.0 case is the standard VAE. Everything else is a choice about where to sit on the tradeoff between reconstruction fidelity and generation quality.</p>
+
+    <div class="callout note">
+      <div class="callout-label">Note</div>
+      <p>The KL divergence from a Gaussian <span class="math">N(&mu;, &sigma;&sup2;)</span> to the prior <span class="math">N(0, 1)</span> has a closed-form solution: <span class="math">KL = &frac12;(&mu;&sup2; + &sigma;&sup2; &minus; ln(&sigma;&sup2;) &minus; 1)</span>. If <span class="math">&mu; = 0</span> and <span class="math">&sigma; = 1</span>, KL = 0. The further the encoder's output drifts from the prior, the larger the penalty.</p>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A VAE encoder outputs &mu; = 0 and &sigma; = 0.01 for every input. What's wrong?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','The KL penalty would actually push &sigma; <em>up</em> toward 1.0, not down. A tiny &sigma; means the encoder is acting like a standard autoencoder &mdash; outputting near-deterministic points &mdash; which defeats the purpose of the VAE.')">Nothing &mdash; small variance means the encoder is confident</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf1','Exactly. When &sigma; &asymp; 0, sampling is deterministic (z &asymp; &mu; every time), and the KL penalty is large because N(0, 0.01&sup2;) is far from N(0, 1). The encoder has collapsed back to point estimates, giving up the smoothness guarantee. The KL term exists precisely to prevent this &mdash; it penalizes narrow distributions and pushes &sigma; toward 1.','')">The encoder has collapsed to point estimates &mdash; it's ignoring the KL penalty</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','The prior is N(0, 1), not N(0, 0). A &sigma; of 0.01 is <em>very</em> far from the prior, which means the KL term is large. The encoder isn&rsquo;t matching the prior; it&rsquo;s fighting it.')">This is fine &mdash; it means the encoder learned to match the prior closely</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III — The Reparameterization Trick         -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Trick</span>
+    <h2>Backprop Through Randomness</h2>
+
+    <p>We have a problem that sounds almost philosophical. The encoder outputs &mu; and &sigma;. We sample <span class="math">z ~ N(&mu;, &sigma;&sup2;)</span>. The decoder takes z and produces a reconstruction. We compute the loss. Now we need to backpropagate.</p>
+
+    <p>The gradient flows backward from the loss through the decoder, arrives at z, and hits a wall. Because z was <em>sampled</em>. It's a random draw from a distribution. You can't differentiate through a random number generator. The sampling operation has no gradient &mdash; it's a black box that takes parameters in and spits a random number out, with no deterministic path connecting input to output.</p>
+
+    <p>Without a gradient through the sampling step, we can't update &mu; and &sigma;. Without updating &mu; and &sigma;, we can't train the encoder. The whole architecture is dead on arrival.</p>
+
+    <p>The fix is the <strong>reparameterization trick</strong>, and it's one of those ideas that seems like cheating until you see exactly why it works.<sup><a href="#fn-3" title="Kingma & Welling (2014) introduced this trick. Rezende, Mohamed & Wierstra (2014) independently proposed the same idea.">[3]</a></sup></p>
+
+    <p>Instead of sampling z directly from <span class="math">N(&mu;, &sigma;&sup2;)</span>, we rewrite the sampling as a deterministic function of &mu;, &sigma;, and an auxiliary random variable &epsilon;:</p>
+
+    <div class="math-block">
+      <span class="eq-label">The Reparameterization Trick</span>
+      <div>&epsilon; ~ N(0, 1)</div>
+      <div>z = &mu; + &sigma; &middot; &epsilon;</div>
+      <span class="comment">&mdash; z has exactly the same distribution as before: N(&mu;, &sigma;&sup2;). But now z is a deterministic, differentiable function of &mu; and &sigma;.</span>
+    </div>
+
+    <p>The randomness is still there &mdash; it's in &epsilon;. But &epsilon; is sampled <em>outside</em> the computation graph, like an input. From the perspective of backpropagation, z = &mu; + &sigma; &middot; &epsilon; is just an affine transformation. The gradient of z with respect to &mu; is 1. The gradient of z with respect to &sigma; is &epsilon;. Both are well-defined, both flow backward, and the encoder's parameters are now reachable.</p>
+
+    <p>The trick moves the randomness from the <em>operation</em> to the <em>input</em>. The operation becomes deterministic. Deterministic operations have gradients. Problem solved.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The Reparameterization Trick</div>
+      <p class="interactive-setup">Toggle between the naive sampling path (no gradient) and the reparameterized path (gradient flows). Watch how the gradient reaches &mu; and &sigma; only after reparameterization.</p>
+      <canvas id="reparam-canvas" height="300"></canvas>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn primary" id="btn-naive" onclick="setReparamMode('naive')">Naive Sampling</button>
+        <button class="btn" id="btn-reparam" onclick="setReparamMode('reparam')">Reparameterized</button>
+        <button class="btn" id="btn-animate" onclick="animateGradient()">&#9654; Animate Gradient</button>
+      </div>
+      <div class="reparam-desc" id="reparam-desc">Naive path: z is sampled from N(&mu;, &sigma;&sup2;). The sampling node is stochastic &mdash; no gradient passes through it. &mu; and &sigma; are unreachable.</div>
+    </div>
+
+    <h3>A worked example</h3>
+
+    <p>Encoder outputs <span class="math">&mu; = 2.0</span>, <span class="math">&sigma; = 0.5</span>. We sample <span class="math">&epsilon; = 0.8</span> from N(0,1). Then:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Forward pass</span>
+      <div>z = 2.0 + 0.5 &middot; 0.8 = 2.4</div>
+      <span class="comment">&mdash; z = 2.4, which is a sample from N(2.0, 0.25)</span>
+      <div style="margin-top:.5rem">&part;z/&part;&mu; = 1 &nbsp;&nbsp;&nbsp; &part;z/&part;&sigma; = &epsilon; = 0.8</div>
+      <span class="comment">&mdash; both gradients exist and are simple. Backprop proceeds through &mu; and &sigma; to the encoder weights.</span>
+    </div>
+
+    <p>Without reparameterization, z = 2.4 is "just a number that came out of a random process." With reparameterization, z = 2.4 is the result of a computation we can trace and differentiate. Same number. Different computational story. And that story is what backpropagation needs.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV — The ELBO                              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Objective</span>
+    <h2>The ELBO &mdash; Brick by Brick</h2>
+
+    <p>This is the hardest section. Most explanations of the VAE objective wave their hands at the critical step, or present the final formula and expect you to trust it. We're going to earn every line.</p>
+
+    <p>The goal: we want to maximize <span class="math">log p(x)</span> &mdash; the log-probability of the data under our model. This is the standard maximum likelihood objective. If our model assigns high probability to the data, it has learned the data distribution well.</p>
+
+    <p>The problem: computing <span class="math">p(x)</span> requires integrating over all possible latent codes z:</p>
+
+    <div class="math-block">
+      <span class="eq-label">Marginal likelihood</span>
+      <div>p(x) = &int; p(x|z) &middot; p(z) dz</div>
+      <span class="comment">&mdash; sum the probability of x under every possible z, weighted by the prior probability of z</span>
+    </div>
+
+    <p>This integral is intractable. For a 32-dimensional latent space, you'd need to integrate over all of R<sup>32</sup>. The decoder <span class="math">p(x|z)</span> is a neural network &mdash; a nonlinear function with no closed-form integral. We cannot compute this quantity. Period.<sup><a href="#fn-4" title="'Intractable' in this context means no polynomial-time algorithm is known. The integral has no closed-form solution for nonlinear decoders.">[4]</a></sup></p>
+
+    <p>Since we can't maximize <span class="math">log p(x)</span> directly, we'll construct something we <em>can</em> maximize that is guaranteed to be a lower bound on <span class="math">log p(x)</span>. Maximizing the lower bound pushes <span class="math">log p(x)</span> up indirectly. That lower bound is the <strong>Evidence Lower Bound</strong>, or <strong>ELBO</strong>.</p>
+
+    <p>Click each step to build the derivation.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; ELBO Builder</div>
+      <p class="interactive-setup">Click each step in order. Each one reveals the mathematical move and explains why it's valid.</p>
+
+      <div class="elbo-step" id="elbo-1" onclick="revealElbo(1)">
+        <div class="step-num">Step 1 &mdash; Introduce the encoder</div>
+        <div class="step-teaser">We can't compute the integral, so we introduce an approximation q(z|x)...</div>
+        <div class="step-math">log p(x) = log p(x) &middot; &int; q(z|x) dz<br>= log p(x) &middot; 1</div>
+        <div class="step-prose">Since q(z|x) is a valid probability distribution, it integrates to 1. This line changes nothing &mdash; it just sets up the next move. We're introducing the encoder distribution q(z|x) as a handle we can grab.</div>
+      </div>
+
+      <div class="elbo-step" id="elbo-2" onclick="revealElbo(2)">
+        <div class="step-num">Step 2 &mdash; Rewrite as an expectation</div>
+        <div class="step-teaser">Multiply and divide inside the integral to create an expectation under q...</div>
+        <div class="step-math">log p(x) = E<sub>q(z|x)</sub>[ log p(x) ]</div>
+        <div class="step-prose">Since log p(x) doesn't depend on z, pulling it inside the expectation changes nothing. But now we have an expectation under q(z|x), which we can work with.</div>
+      </div>
+
+      <div class="elbo-step" id="elbo-3" onclick="revealElbo(3)">
+        <div class="step-num">Step 3 &mdash; Apply Bayes' rule</div>
+        <div class="step-teaser">Replace p(x) using p(x) = p(x,z)/p(z|x) inside the log...</div>
+        <div class="step-math">= E<sub>q</sub>[ log p(x,z) &minus; log p(z|x) ]<br>= E<sub>q</sub>[ log p(x,z) &minus; log q(z|x) + log q(z|x) &minus; log p(z|x) ]</div>
+        <div class="step-prose">We used p(x) = p(x,z)/p(z|x) via Bayes' rule, then added and subtracted log q(z|x). This is the key algebraic move &mdash; it splits the expression into two pieces we can identify.</div>
+      </div>
+
+      <div class="elbo-step" id="elbo-4" onclick="revealElbo(4)">
+        <div class="step-num">Step 4 &mdash; Identify the two terms</div>
+        <div class="step-teaser">Recognize the ELBO and the KL divergence...</div>
+        <div class="step-math">log p(x) = E<sub>q</sub>[ log p(x,z) &minus; log q(z|x) ]<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ KL( q(z|x) || p(z|x) )</div>
+        <div class="step-prose">The first term is the ELBO. The second is the KL divergence between our approximate encoder q(z|x) and the true (intractable) posterior p(z|x). Since KL divergence is always &ge; 0, the ELBO is always &le; log p(x). Maximizing the ELBO pushes up a lower bound on the evidence.</div>
+      </div>
+
+      <div class="elbo-step" id="elbo-5" onclick="revealElbo(5)">
+        <div class="step-num">Step 5 &mdash; Decompose the ELBO</div>
+        <div class="step-teaser">Split the ELBO into reconstruction and regularization...</div>
+        <div class="step-math">ELBO = E<sub>q(z|x)</sub>[ log p(x|z) ] &minus; KL( q(z|x) || p(z) )</div>
+        <div class="step-prose">Using p(x,z) = p(x|z)p(z), the ELBO splits into two terms with clear meanings. The first term, E<sub>q</sub>[log p(x|z)], is <strong>reconstruction quality</strong> &mdash; how well does the decoder reconstruct x from samples of z? The second term, KL(q(z|x) || p(z)), is <strong>regularization</strong> &mdash; how close is the encoder's distribution to the prior N(0,1)? This is the VAE loss function.</div>
+      </div>
+    </div>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>The VAE loss is <strong>ELBO = reconstruction &minus; KL regularization</strong>. The reconstruction term rewards accurate decoding. The KL term rewards an encoder that stays close to the prior. The tension between them produces the structured, sampleable latent space.</p>
+    </div>
+
+    <p>For a concrete worked example: if the encoder outputs <span class="math">&mu; = [1.5, &minus;0.3]</span> and <span class="math">&sigma; = [0.8, 1.2]</span> for some input x, the KL term for dimension 1 is <span class="math">&frac12;(1.5&sup2; + 0.8&sup2; &minus; ln(0.64) &minus; 1) = &frac12;(2.25 + 0.64 + 0.446 &minus; 1) = 1.168</span>. The encoder pays a price for placing this distribution away from the origin and for making it narrower than 1. The reconstruction term, meanwhile, rewards whatever &mu; and &sigma; produce the best decoded output. Training finds the balance.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V — The beta-VAE Tradeoff                  -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; The Tradeoff</span>
+    <h2>The Dial Between Reconstruction and Generation</h2>
+
+    <p>The standard VAE weighs both ELBO terms equally. But what happens if you turn the KL term up or down? Higgins et al. (2017) asked this question and introduced the <strong>&beta;-VAE</strong> &mdash; a VAE where the KL term is multiplied by a scalar &beta;:<sup><a href="#fn-5" title="Higgins et al. (2017), '&beta;-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework.' ICLR.">[5]</a></sup></p>
+
+    <div class="math-block">
+      <span class="eq-label">&beta;-VAE Objective</span>
+      <div>L = E<sub>q</sub>[ log p(x|z) ] &minus; &beta; &middot; KL( q(z|x) || p(z) )</div>
+      <span class="comment">&mdash; &beta; = 1 is the standard VAE; &beta; = 0 is a standard autoencoder; &beta; &gt; 1 applies heavier regularization</span>
+    </div>
+
+    <p>This single scalar controls a fundamental tradeoff. See it for yourself.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; The &beta;-VAE Tradeoff</div>
+      <p class="interactive-setup">Drag &beta; from 0 to 4. The left column shows reconstruction quality (how well the model recovers its input). The right column shows sample quality (what you get from a random latent code). At &beta;=0, reconstructions are sharp but samples are garbage. At &beta;=1, both are reasonable. Above &beta;=1, samples get smoother but reconstructions get blurry.</p>
+      <canvas id="beta-canvas" height="300"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>&beta;:</span>
+          <input type="range" id="beta-slider" min="0" max="400" step="1" value="100" oninput="onBetaSlider(this.value)">
+          <span class="slider-val" id="beta-val">1.00</span>
+        </div>
+        <span id="beta-desc" style="font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);">&beta; = 1.0 &mdash; Standard VAE. Balanced reconstruction and generation.</span>
+      </div>
+    </div>
+
+    <p>&beta; = 0 is a standard autoencoder in disguise. No KL penalty, no regularization, the encoder outputs point estimates, the latent space has gaps. Reconstruction is sharp because nothing forces the encoder to compromise. But sample a random point and decode it: noise.</p>
+
+    <p>&beta; = 1 is the standard VAE. Reconstruction takes a hit &mdash; details get softer, edges blur slightly &mdash; because the encoder must spread its distributions toward N(0,1). The cost is visible in reconstruction. The payoff is visible in generation: random samples look like plausible data.</p>
+
+    <p>&beta; = 4 is heavy regularization. The KL term dominates. All encoder distributions collapse toward the prior. Samples are smooth and pleasant, but reconstructions are blurry approximations &mdash; the encoder has been squeezed so hard it can barely distinguish its inputs. This is the <strong>posterior collapse</strong> regime: the encoder gives up, the latent code carries almost no information, and the decoder learns to generate an "average" output regardless of z.<sup><a href="#fn-6" title="Chen et al. (2017), 'Variational Lossy Autoencoder,' introduced techniques to combat posterior collapse.">[6]</a></sup></p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>There is no free lunch. Reconstruction quality and generation quality compete for the same resource &mdash; the encoder's freedom to deviate from the prior. &beta; is the dial between compression (low KL, tight codes, sharp reconstruction) and coverage (high KL, spread codes, smooth generation). The standard VAE (&beta; = 1) is a specific point on this tradeoff, not the optimal one.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI — Latent Space Geometry                 -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Geometry</span>
+    <h2>Geometry of the Latent Space</h2>
+
+    <p>In the autoencoder piece, we saw that the latent space has structure &mdash; similar inputs land near each other. The VAE inherits this property and adds one more: the structure is <em>continuous</em>. You can draw a straight line between any two points in latent space, decode every point along the line, and get a smooth morph between the two endpoints. No dead zones. No garbage in between.</p>
+
+    <p>This sounds like a minor improvement. It is not. Continuity means the latent space is a <em>manifold</em> &mdash; a smooth surface where every direction corresponds to a meaningful variation in the data. Move along one axis and stroke thickness changes. Move along another and digit identity changes. The directions weren't specified by a human. They were discovered by the network as the most efficient way to organize the data under the joint pressure of reconstruction and regularization.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Latent Space Interpolation</div>
+      <p class="interactive-setup">Click to place two points (A and B) in the latent space. The slider interpolates between them. Watch the decoded output morph smoothly from one shape to another &mdash; the intermediate points are meaningful, not noise.</p>
+      <canvas id="interp-canvas" height="280" style="cursor:crosshair;border:1px solid var(--border);background:white;"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group">
+          <span>Interpolation:</span>
+          <input type="range" id="interp-slider" min="0" max="100" step="1" value="0" oninput="onInterpSlider(this.value)">
+          <span class="slider-val" id="interp-val">A</span>
+        </div>
+        <button class="btn" onclick="resetInterp()">&#8634; Reset Points</button>
+      </div>
+      <div id="interp-decoded" style="display:flex;justify-content:center;gap:4px;margin-top:.8rem;"></div>
+      <div id="interp-desc" style="font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);text-align:center;margin-top:.4rem;">Click to place point A</div>
+    </div>
+
+    <p>The smoothness of interpolation is the strongest evidence that the VAE has learned something real about the data's structure. A lookup table can't interpolate &mdash; it can only return entries it has memorized. A smooth manifold generalizes. The intermediate shapes between A and B were never in the training set, but they're plausible because the decoder has learned a continuous function over the latent space.</p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">You linearly interpolate between two points in a standard autoencoder's latent space. The midpoint decodes to a blurry, incoherent image. You do the same in a VAE's latent space and get a clean intermediate. Why does the VAE succeed where the autoencoder fails?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','The VAE decoder is architecturally identical to the autoencoder decoder &mdash; same layers, same parameters. The difference is in what the <em>encoder</em> produces during training, which forces the decoder to learn a continuous mapping.')">The VAE uses a more powerful decoder</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf2','The KL penalty forces the encoder to spread its distributions across latent space, ensuring the decoder sees samples from the regions <em>between</em> training points during training. The standard autoencoder never sends any training signal to these intermediate regions, so the decoder has no reason to produce anything coherent there. The VAE fills the gaps by construction.','')">The KL penalty forces the encoder to cover intermediate regions, so the decoder is trained on them</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','Training longer doesn&rsquo;t help. The standard autoencoder&rsquo;s loss function has no term that rewards meaningful behavior <em>between</em> training point encodings. The gaps are a structural feature of the objective, not a training shortcoming.')">The VAE is just trained longer</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII — The Philosophical Shift              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; The Shift</span>
+    <h2>The Decoder Is the Generator</h2>
+
+    <p>Here is the conceptual leap that separates the VAE from its autoencoder parent, and it's easy to miss if you're focused on the math.</p>
+
+    <p>In a standard autoencoder, the decoder is a <em>reconstruction</em> tool. It takes a compressed code and tries to recover the original input. Its job is defined relative to a specific input &mdash; it succeeds when the output matches what went in. After training, you don't use the decoder alone. You use the whole system: encode, then decode.</p>
+
+    <p>In a VAE, something different happens. The KL term pushes the aggregate encoding distribution toward N(0, 1). Once training converges, the distribution of latent codes across the entire training set approximates a standard Gaussian. This means you can throw away the encoder entirely, sample z from N(0, 1), and feed it directly to the decoder. The decoder produces a plausible data point.<sup><a href="#fn-7" title="This is the 'ancestral sampling' procedure: z ~ p(z), x ~ p(x|z). The decoder IS the generative model.">[7]</a></sup></p>
+
+    <p>The decoder has become a <strong>generative model</strong>. It's a function that maps random noise to structured data. Feed it Gaussian noise and it produces handwritten digits, faces, molecules, music &mdash; whatever it was trained on. It doesn't need an input to reconstruct. It creates from nothing.</p>
+
+    <p>This is the shift from <em>compression</em> to <em>generation</em>. The autoencoder asks: "Given this data point, what's the best compressed representation?" The VAE asks: "Given random noise, what data point should I create?" Same decoder architecture. Fundamentally different role.</p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>The autoencoder's decoder is a <strong>reconstruction function</strong> &mdash; it recovers what went in. The VAE's decoder is a <strong>generative function</strong> &mdash; it creates what never existed. The difference isn't architectural. It's that the KL term made the latent space match the prior, so sampling the prior and decoding produces valid data. The constraint created the generator.</p>
+    </div>
+
+    <p>Every generative model that followed &mdash; GANs, normalizing flows, diffusion models &mdash; learns a mapping from noise to data. The VAE was the first to make this mapping explicit and trainable through a simple modification of the autoencoder. The idea that a neural network could learn to turn noise into structure &mdash; that randomness could be the <em>raw material</em> of creation &mdash; is the VAE's deepest contribution.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VIII — Synthesis                           -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s8">VIII. &mdash; Synthesis</span>
+    <h2>Synthesis</h2>
+
+    <p><a href="#hero-demo" style="color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.85rem;text-decoration:none;">&#8593; Scroll back up and click in those two latent spaces again.</a></p>
+
+    <p>You now know what separates them. The left space was trained to reconstruct. The right space was trained to reconstruct <em>and</em> stay close to a Gaussian prior. That second constraint &mdash; the KL penalty &mdash; costs something: reconstructions get softer, the encoder can't place classes as far apart as it wants, fine details blur. But it buys something the autoencoder could never have: a latent space where every point is meaningful, where interpolation works, where you can sample from the prior and get coherent output.</p>
+
+    <p>Three ideas made this work. The reparameterization trick moved randomness outside the gradient path, making the whole system trainable. The ELBO gave us a tractable objective when the true likelihood was out of reach. And the KL penalty, which looks like a regularizer, turned out to be the mechanism that converts a compression system into a generative one.</p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A colleague argues: "The VAE is just an autoencoder with a regularizer &mdash; the KL term prevents overfitting, like L2 weight decay." What's wrong with this characterization?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','The KL term does act on the encoder outputs, but calling it &ldquo;just regularization&rdquo; misses the fundamental consequence. L2 decay prevents large weights. The KL term reshapes the <em>geometry</em> of the latent space and enables generation &mdash; a qualitatively different capability, not just better generalization.')">This is roughly correct &mdash; the KL term is a regularizer on the encoder outputs</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf3','The KL term does regularize, but it does something far more specific: it forces the aggregate latent distribution to match a known prior. This means you can sample from that prior and decode &mdash; turning the decoder into a generative model. Standard regularizers prevent overfitting; the KL term enables an entirely new capability (generation) that the autoencoder fundamentally cannot perform.','')">The KL term doesn't just regularize &mdash; it enables generation by making the latent space match a sampleable prior</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf3','','The VAE objective <em>is</em> derived from principled variational inference. But the practical consequence &mdash; the ability to generate by sampling from the prior &mdash; is what makes the KL term fundamentally different from generic regularization.')">The KL term has nothing to do with regularization &mdash; it's purely a Bayesian inference term</button>
+      </div>
+      <div class="quiz-feedback" id="qf3"></div>
+    </div>
+
+    <p>The remarkable thing about the VAE isn't its output quality &mdash; GANs and diffusion models produce sharper images. It isn't its theoretical elegance, though the ELBO derivation is beautiful. The remarkable thing is the <em>economy</em> of the idea. Take an autoencoder. Replace point encodings with distributions. Add a penalty that pushes them toward a Gaussian. Reparameterize so the gradients flow. That's it. Four modifications, and a system that was built to compress becomes a system that creates.<sup><a href="#fn-8" title="The VAE also provides a principled framework for semi-supervised learning, disentangled representation learning, and drug discovery. See Gomez-Bombarelli et al. (2018) for molecular generation.">[8]</a></sup></p>
+
+    <p>Every generative model is, at its core, a learned map from noise to structure. The VAE made that map explicit. It showed that the distance between compression and creation is exactly one constraint &mdash; the requirement that the latent space be sampleable. What the autoencoder learned to <em>store</em>, the VAE learned to <em>imagine</em>.</p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES                                          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote" id="fn-1">
+        <span class="fn-num">[1]</span>
+        <span>The "holes" in autoencoder latent spaces were documented early. Bengio et al. (2013) noted that standard autoencoders learn manifolds with uneven coverage, making generation unreliable. The VAE was explicitly designed to address this by ensuring the latent distribution matches a known, fully-supported prior.</span>
+      </div>
+      <div class="footnote" id="fn-2">
+        <span class="fn-num">[2]</span>
+        <span>Kingma, D.P. & Welling, M. (2014). "Auto-Encoding Variational Bayes." <em>ICLR</em>. This paper introduced the VAE framework, including the reparameterization trick and the ELBO objective. Simultaneously and independently, Rezende, Mohamed & Wierstra (2014) proposed the same reparameterization idea in "Stochastic Backpropagation and Approximate Inference in Deep Generative Models."</span>
+      </div>
+      <div class="footnote" id="fn-3">
+        <span class="fn-num">[3]</span>
+        <span>The reparameterization trick is not specific to Gaussians. It works for any distribution whose samples can be written as a deterministic, differentiable transformation of a noise variable. This includes the logistic, Gumbel, and (with some care) discrete distributions via the Gumbel-Softmax trick (Jang et al., 2017).</span>
+      </div>
+      <div class="footnote" id="fn-4">
+        <span class="fn-num">[4]</span>
+        <span>Importance sampling and MCMC can approximate the integral, but they scale poorly with latent dimension and are too slow for gradient-based training. The ELBO sidesteps the problem by optimizing a tractable lower bound instead.</span>
+      </div>
+      <div class="footnote" id="fn-5">
+        <span class="fn-num">[5]</span>
+        <span>Higgins, I. et al. (2017). "&beta;-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework." <em>ICLR</em>. They showed that &beta; > 1 encourages disentangled representations &mdash; latent dimensions that correspond to independent factors of variation &mdash; at the cost of reconstruction quality.</span>
+      </div>
+      <div class="footnote" id="fn-6">
+        <span class="fn-num">[6]</span>
+        <span>Posterior collapse occurs when the KL term dominates and the encoder learns to output the prior regardless of input. The decoder then ignores z and generates from a learned constant. Solutions include KL annealing (gradually increasing &beta; during training), free bits (Kingma et al., 2016), and the delta-VAE (Razavi et al., 2019).</span>
+      </div>
+      <div class="footnote" id="fn-7">
+        <span class="fn-num">[7]</span>
+        <span>Formally, the VAE defines a generative model p(x) = &int; p(x|z)p(z)dz where p(z) = N(0,I) is the prior and p(x|z) is the decoder. The encoder q(z|x) is not part of the generative model &mdash; it's an inference tool used only during training. At generation time, only the decoder and the prior are needed.</span>
+      </div>
+      <div class="footnote" id="fn-8">
+        <span class="fn-num">[8]</span>
+        <span>Gomez-Bombarelli, R. et al. (2018). "Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules." <em>ACS Central Science</em>. They used a VAE to map molecules to a continuous latent space, enabling gradient-based optimization of molecular properties &mdash; a task impossible with discrete molecular representations.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// HELPER: Simple shape decoder
+// ═══════════════════════════════════════
+const CLASS_COLORS = ['#2a5db0', '#c4622d', '#1a7a4a', '#6b3fa0', '#8b5e0a'];
+
+// Pseudo-data: 5 shape classes in 2D latent space
+function makeClusterData() {
+  const clusters = [
+    { cx: -1.8, cy: 1.5, label: 'circle', color: CLASS_COLORS[0] },
+    { cx: 1.5, cy: 1.8, label: 'square', color: CLASS_COLORS[1] },
+    { cx: -1.5, cy: -1.5, label: 'triangle', color: CLASS_COLORS[2] },
+    { cx: 1.8, cy: -1.2, label: 'star', color: CLASS_COLORS[3] },
+    { cx: 0.0, cy: 0.0, label: 'cross', color: CLASS_COLORS[4] }
+  ];
+  const points = [];
+  clusters.forEach((cl, ci) => {
+    for (let i = 0; i < 30; i++) {
+      points.push({
+        x: cl.cx + (Math.random() - 0.5) * 0.6,
+        y: cl.cy + (Math.random() - 0.5) * 0.6,
+        cls: ci,
+        color: cl.color,
+        label: cl.label
+      });
+    }
+  });
+  return { clusters, points };
+}
+
+function makeVAEData(clusters) {
+  const points = [];
+  clusters.forEach((cl, ci) => {
+    for (let i = 0; i < 30; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const r = Math.random() * 1.2;
+      points.push({
+        x: cl.cx * 0.5 + Math.cos(ang) * r * 0.5,
+        y: cl.cy * 0.5 + Math.sin(ang) * r * 0.5,
+        cls: ci,
+        color: cl.color,
+        label: cl.label
+      });
+    }
+  });
+  return points;
+}
+
+// Decode a 2D latent point to a simple shape on a mini canvas
+function decodeShape(z1, z2, clusters, isVAE) {
+  // Find nearest cluster
+  let minD = Infinity, best = 0;
+  const scale = isVAE ? 0.5 : 1.0;
+  clusters.forEach((cl, i) => {
+    const dx = z1 - cl.cx * scale, dy = z2 - cl.cy * scale;
+    const d = dx * dx + dy * dy;
+    if (d < minD) { minD = d; best = i; }
+  });
+  // Threshold for "dead zone" (AE only)
+  const threshold = isVAE ? 999 : 1.2;
+  if (minD > threshold) return { shape: 'noise', color: '#ccc', confidence: 0 };
+  const conf = Math.max(0, 1 - minD / (isVAE ? 4 : 1.5));
+  return { shape: clusters[best].label, color: clusters[best].color, confidence: conf };
+}
+
+function drawMiniShape(ctx, cx, cy, size, shape, color, conf) {
+  ctx.globalAlpha = 0.3 + conf * 0.7;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  if (shape === 'circle') {
+    ctx.beginPath(); ctx.arc(cx, cy, size * 0.4, 0, Math.PI * 2); ctx.fill();
+  } else if (shape === 'square') {
+    const s = size * 0.35;
+    ctx.fillRect(cx - s, cy - s, s * 2, s * 2);
+  } else if (shape === 'triangle') {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - size * 0.4);
+    ctx.lineTo(cx - size * 0.4, cy + size * 0.35);
+    ctx.lineTo(cx + size * 0.4, cy + size * 0.35);
+    ctx.closePath(); ctx.fill();
+  } else if (shape === 'star') {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      const a2 = a + Math.PI / 5;
+      ctx.lineTo(cx + Math.cos(a) * size * 0.4, cy + Math.sin(a) * size * 0.4);
+      ctx.lineTo(cx + Math.cos(a2) * size * 0.18, cy + Math.sin(a2) * size * 0.18);
+    }
+    ctx.closePath(); ctx.fill();
+  } else if (shape === 'cross') {
+    const s = size * 0.12, l = size * 0.38;
+    ctx.fillRect(cx - s, cy - l, s * 2, l * 2);
+    ctx.fillRect(cx - l, cy - s, l * 2, s * 2);
+  } else {
+    // noise
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = `rgba(200,200,200,${Math.random() * 0.3})`;
+      ctx.fillRect(cx - size * 0.3 + Math.random() * size * 0.6,
+                   cy - size * 0.3 + Math.random() * size * 0.6,
+                   size * 0.15, size * 0.15);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ═══════════════════════════════════════
+// DEMO 1: AE vs VAE Latent Spaces (Hero)
+// ═══════════════════════════════════════
+(function() {
+  const { clusters, points: aePoints } = makeClusterData();
+  const vaePoints = makeVAEData(clusters);
+
+  function setupPanel(canvasId, outId, pts, isVAE) {
+    const c = document.getElementById(canvasId);
+    const ctx = c.getContext('2d');
+    const H_PX = 280;
+    let clickZ = null;
+
+    function resize() {
+      c.width = c.offsetWidth * devicePixelRatio;
+      c.height = H_PX * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+      draw();
+    }
+
+    function draw() {
+      const W = c.offsetWidth;
+      ctx.clearRect(0, 0, W, H_PX);
+      const pad = 30;
+      const gw = W - pad * 2, gh = H_PX - pad * 2;
+      const range = isVAE ? 2.5 : 3.0;
+
+      function px(x) { return pad + (x + range) / (2 * range) * gw; }
+      function py(y) { return pad + (range - y) / (2 * range) * gh; }
+
+      // Grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.8;
+      for (let v = -2; v <= 2; v++) {
+        ctx.beginPath(); ctx.moveTo(px(v), pad); ctx.lineTo(px(v), pad + gh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad, py(v)); ctx.lineTo(pad + gw, py(v)); ctx.stroke();
+      }
+
+      // Axes
+      ctx.strokeStyle = '#c8c4bc'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad, py(0)); ctx.lineTo(pad + gw, py(0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px(0), pad); ctx.lineTo(px(0), pad + gh); ctx.stroke();
+
+      // Points
+      pts.forEach(p => {
+        ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + '88'; ctx.fill();
+      });
+
+      // Decoded output at click
+      if (clickZ) {
+        const decoded = decodeShape(clickZ[0], clickZ[1], clusters, isVAE);
+        // Crosshair
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#c4622d55'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px(clickZ[0]), pad); ctx.lineTo(px(clickZ[0]), pad + gh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad, py(clickZ[1])); ctx.lineTo(pad + gw, py(clickZ[1])); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Marker
+        ctx.beginPath(); ctx.arc(px(clickZ[0]), py(clickZ[1]), 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#c4622d'; ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+
+        // Mini decoded shape
+        const decodeCx = W - 50, decodeCy = 50;
+        ctx.fillStyle = '#f3f1ec'; ctx.strokeStyle = '#e2dfd8'; ctx.lineWidth = 1;
+        ctx.fillRect(decodeCx - 30, decodeCy - 30, 60, 60);
+        ctx.strokeRect(decodeCx - 30, decodeCy - 30, 60, 60);
+        drawMiniShape(ctx, decodeCx, decodeCy, 50, decoded.shape, decoded.color, decoded.confidence);
+
+        document.getElementById(outId).textContent =
+          decoded.shape === 'noise' ? 'Dead zone — incoherent output' :
+          `${decoded.shape} (confidence: ${(decoded.confidence * 100).toFixed(0)}%)`;
+      }
+
+      // Labels
+      ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+      ctx.fillText('z\u2081', pad + gw / 2, H_PX - 5);
+      ctx.save(); ctx.translate(8, pad + gh / 2); ctx.rotate(-Math.PI / 2);
+      ctx.fillText('z\u2082', 0, 0); ctx.restore();
+    }
+
+    function onClick(ex, ey) {
+      const W = c.offsetWidth;
+      const pad = 30;
+      const gw = W - pad * 2, gh = H_PX - pad * 2;
+      const range = isVAE ? 2.5 : 3.0;
+      const z1 = (ex - pad) / gw * 2 * range - range;
+      const z2 = range - (ey - pad) / gh * 2 * range;
+      clickZ = [z1, z2];
+      draw();
+      tone(300 + (z1 + range) * 40 + (z2 + range) * 30, 'triangle', 0.06, 0.025);
+    }
+
+    let dragging = false;
+    c.addEventListener('mousedown', e => { dragging = true; const r = c.getBoundingClientRect(); onClick(e.clientX - r.left, e.clientY - r.top); });
+    c.addEventListener('mousemove', e => { if (dragging) { const r = c.getBoundingClientRect(); onClick(e.clientX - r.left, e.clientY - r.top); } });
+    c.addEventListener('mouseup', () => dragging = false);
+    c.addEventListener('mouseleave', () => dragging = false);
+    c.addEventListener('touchstart', e => { dragging = true; const r = c.getBoundingClientRect(); onClick(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); }, { passive: true });
+    c.addEventListener('touchmove', e => { if (dragging) { const r = c.getBoundingClientRect(); onClick(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); } }, { passive: true });
+    c.addEventListener('touchend', () => dragging = false);
+
+    resize();
+    window.addEventListener('resize', resize);
+  }
+
+  setupPanel('ae-canvas', 'ae-out', aePoints, false);
+  setupPanel('vae-canvas', 'vae-out', vaePoints, true);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 2: Encoder's Output (KL weight)
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('encoder-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 320;
+
+  const classData = [
+    { cx: -1.8, cy: 1.5, color: '#2a5db0', label: 'A' },
+    { cx: 1.5, cy: 1.8, color: '#c4622d', label: 'B' },
+    { cx: -1.5, cy: -1.5, color: '#1a7a4a', label: 'C' },
+    { cx: 1.8, cy: -1.2, color: '#6b3fa0', label: 'D' },
+    { cx: 0.0, cy: 0.0, color: '#8b5e0a', label: 'E' }
+  ];
+
+  let klWeight = 0;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+    const pad = 36, range = 3.5;
+    const gw = W - pad * 2, gh = H_PX - pad * 2;
+
+    function px(x) { return pad + (x + range) / (2 * range) * gw; }
+    function py(y) { return pad + (range - y) / (2 * range) * gh; }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.8;
+    for (let v = -3; v <= 3; v++) {
+      ctx.beginPath(); ctx.moveTo(px(v), pad); ctx.lineTo(px(v), pad + gh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad, py(v)); ctx.lineTo(pad + gw, py(v)); ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = '#c8c4bc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, py(0)); ctx.lineTo(pad + gw, py(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(0), pad); ctx.lineTo(px(0), pad + gh); ctx.stroke();
+
+    // Prior circle (1 sigma, 2 sigma)
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(px(0), py(0), (1 / range) * gw / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px(0), py(0), (2 / range) * gw / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#a0998e'; ctx.font = "8px 'DM Mono'"; ctx.textAlign = 'left';
+    ctx.fillText('1\u03C3', px(1) + 3, py(0) - 3);
+    ctx.fillText('2\u03C3', px(2) + 3, py(0) - 3);
+
+    // Draw encoder distributions as ellipses
+    const t = klWeight / 100; // 0 to 1
+    classData.forEach(cl => {
+      // Interpolate mean toward 0 and sigma toward 1
+      const mx = cl.cx * (1 - t * 0.85);
+      const my = cl.cy * (1 - t * 0.85);
+      const sigma = 0.15 + t * 0.85; // from 0.15 to 1.0
+
+      // Draw filled ellipse
+      const rx = sigma / range * gw / 2;
+      const ry = sigma / range * gh / 2;
+
+      // 2-sigma fill
+      ctx.beginPath(); ctx.ellipse(px(mx), py(my), rx * 2, ry * 2, 0, 0, Math.PI * 2);
+      ctx.fillStyle = cl.color + '10'; ctx.fill();
+
+      // 1-sigma fill
+      ctx.beginPath(); ctx.ellipse(px(mx), py(my), rx, ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = cl.color + '25'; ctx.fill();
+      ctx.strokeStyle = cl.color + '66'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // Center dot
+      ctx.beginPath(); ctx.arc(px(mx), py(my), 3, 0, Math.PI * 2);
+      ctx.fillStyle = cl.color; ctx.fill();
+
+      // Label
+      ctx.fillStyle = cl.color; ctx.font = "bold 10px 'DM Sans'"; ctx.textAlign = 'center';
+      ctx.fillText(cl.label, px(mx), py(my) - rx - 6);
+    });
+
+    // Labels
+    ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+    ctx.fillText('z\u2081', pad + gw / 2, H_PX - 5);
+    ctx.save(); ctx.translate(10, pad + gh / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('z\u2082', 0, 0); ctx.restore();
+
+    ctx.fillText('N(0,I)', px(0), py(0) + 12);
+  }
+
+  window.onEncKL = function(v) {
+    klWeight = parseInt(v);
+    const t = klWeight / 100;
+    document.getElementById('enc-kl-val').textContent = t.toFixed(2);
+    tone(200 + t * 400, 'triangle', 0.08, 0.04);
+    draw();
+    const desc = document.getElementById('enc-desc');
+    if (t < 0.1) desc.textContent = 'No KL penalty \u2014 tight, separated clusters with dead zones.';
+    else if (t < 0.5) desc.textContent = 'Light KL \u2014 distributions spreading, some overlap beginning.';
+    else if (t < 0.8) desc.textContent = 'Moderate KL \u2014 distributions overlap significantly. Gaps filling.';
+    else if (t < 1.05) desc.textContent = 'Standard VAE (\u03B2=1) \u2014 full coverage, smooth latent space.';
+    else desc.textContent = 'Heavy KL \u2014 all distributions collapsing toward prior. Posterior collapse regime.';
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 3: Reparameterization Trick
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('reparam-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 300;
+  let mode = 'naive';
+  let gradAnimT = -1;
+  let animFrame = null;
+
+  const nodeRadius = 22;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const isReparam = mode === 'reparam';
+
+    // Node positions (relative)
+    const nodes = {
+      x:     { x: W * 0.08, y: H_PX * 0.5,  label: 'x',       color: '#7a7870' },
+      enc:   { x: W * 0.22, y: H_PX * 0.5,  label: 'Enc',     color: '#2a5db0' },
+      mu:    { x: W * 0.38, y: H_PX * 0.3,  label: '\u03BC',   color: '#2a5db0' },
+      sigma: { x: W * 0.38, y: H_PX * 0.7,  label: '\u03C3',   color: '#2a5db0' },
+    };
+
+    if (isReparam) {
+      nodes.eps    = { x: W * 0.50, y: H_PX * 0.88, label: '\u03B5',   color: '#7a7870' };
+      nodes.mult   = { x: W * 0.54, y: H_PX * 0.7,  label: '\u00D7',   color: '#6b3fa0' };
+      nodes.add    = { x: W * 0.62, y: H_PX * 0.5,  label: '+',        color: '#6b3fa0' };
+      nodes.z      = { x: W * 0.74, y: H_PX * 0.5,  label: 'z',        color: '#c4622d' };
+    } else {
+      nodes.sample = { x: W * 0.54, y: H_PX * 0.5,  label: '~N',       color: '#888' };
+      nodes.z      = { x: W * 0.74, y: H_PX * 0.5,  label: 'z',        color: '#c4622d' };
+    }
+
+    nodes.dec  = { x: W * 0.86, y: H_PX * 0.5,  label: 'Dec',     color: '#1a7a4a' };
+    nodes.loss = { x: W * 0.96, y: H_PX * 0.5,  label: 'L',       color: '#c4622d' };
+
+    // Edges
+    const edges = [
+      { from: 'x', to: 'enc' },
+      { from: 'enc', to: 'mu' },
+      { from: 'enc', to: 'sigma' },
+    ];
+
+    if (isReparam) {
+      edges.push({ from: 'sigma', to: 'mult' });
+      edges.push({ from: 'eps', to: 'mult' });
+      edges.push({ from: 'mult', to: 'add' });
+      edges.push({ from: 'mu', to: 'add' });
+      edges.push({ from: 'add', to: 'z' });
+    } else {
+      edges.push({ from: 'mu', to: 'sample' });
+      edges.push({ from: 'sigma', to: 'sample' });
+      edges.push({ from: 'sample', to: 'z' });
+    }
+
+    edges.push({ from: 'z', to: 'dec' });
+    edges.push({ from: 'dec', to: 'loss' });
+
+    // Draw edges
+    edges.forEach(e => {
+      const a = nodes[e.from], b = nodes[e.to];
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+
+    // Block indicator on naive sample node
+    if (!isReparam) {
+      const sn = nodes.sample;
+      ctx.beginPath(); ctx.arc(sn.x, sn.y, nodeRadius + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = '#c0392b44'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#c0392b'; ctx.font = "bold 9px 'DM Sans'"; ctx.textAlign = 'center';
+      ctx.fillText('NO GRAD', sn.x, sn.y + nodeRadius + 14);
+    }
+
+    // Gradient flow animation
+    if (gradAnimT >= 0 && gradAnimT <= 1) {
+      const gradPath = [];
+      if (isReparam) {
+        gradPath.push(nodes.loss, nodes.dec, nodes.z, nodes.add);
+        // Branch to mu
+        const muPath = [nodes.add, nodes.mu, nodes.enc];
+        // Branch to sigma via mult
+        const sigPath = [nodes.add, nodes.mult, nodes.sigma, nodes.enc];
+        drawGradFlow(ctx, gradPath, gradAnimT, '#c4622d');
+        drawGradFlow(ctx, muPath, Math.max(0, gradAnimT - 0.3), '#c4622d');
+        drawGradFlow(ctx, sigPath, Math.max(0, gradAnimT - 0.3), '#c4622d');
+      } else {
+        gradPath.push(nodes.loss, nodes.dec, nodes.z, nodes.sample);
+        drawGradFlow(ctx, gradPath, gradAnimT, '#c0392b');
+        // Show block
+        if (gradAnimT > 0.6) {
+          const sn = nodes.sample;
+          ctx.beginPath(); ctx.arc(sn.x, sn.y, nodeRadius + 8, 0, Math.PI * 2);
+          ctx.strokeStyle = '#c0392b88'; ctx.lineWidth = 3;
+          ctx.setLineDash([6, 3]); ctx.stroke(); ctx.setLineDash([]);
+        }
+      }
+    }
+
+    // Draw nodes
+    Object.values(nodes).forEach(n => {
+      ctx.beginPath(); ctx.arc(n.x, n.y, nodeRadius, 0, Math.PI * 2);
+      ctx.fillStyle = n.color + '18'; ctx.fill();
+      ctx.strokeStyle = n.color; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = n.color; ctx.font = "bold 11px 'DM Mono'"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(n.label, n.x, n.y);
+    });
+
+    // Epsilon label
+    if (isReparam) {
+      ctx.fillStyle = '#7a7870'; ctx.font = "8px 'DM Sans'"; ctx.textAlign = 'center';
+      ctx.fillText('~ N(0,1)', nodes.eps.x, nodes.eps.y + nodeRadius + 10);
+    }
+  }
+
+  function drawGradFlow(ctx, pathNodes, t, color) {
+    if (t <= 0 || pathNodes.length < 2) return;
+    const totalLen = pathNodes.length - 1;
+    const progress = t * totalLen;
+
+    for (let i = 0; i < Math.min(Math.ceil(progress), totalLen); i++) {
+      const a = pathNodes[i], b = pathNodes[i + 1];
+      const segProgress = Math.min(1, progress - i);
+      const mx = a.x + (b.x - a.x) * segProgress;
+      const my = a.y + (b.y - a.y) * segProgress;
+
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mx, my);
+      ctx.strokeStyle = color + '88'; ctx.lineWidth = 3; ctx.stroke();
+
+      // Arrow head
+      const angle = Math.atan2(my - a.y, mx - a.x);
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx - 8 * Math.cos(angle - 0.4), my - 8 * Math.sin(angle - 0.4));
+      ctx.lineTo(mx - 8 * Math.cos(angle + 0.4), my - 8 * Math.sin(angle + 0.4));
+      ctx.closePath(); ctx.fillStyle = color + '88'; ctx.fill();
+    }
+  }
+
+  window.setReparamMode = function(m) {
+    mode = m;
+    gradAnimT = -1;
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    document.getElementById('btn-naive').className = m === 'naive' ? 'btn primary' : 'btn';
+    document.getElementById('btn-reparam').className = m === 'reparam' ? 'btn primary' : 'btn';
+    draw();
+    playClick();
+    document.getElementById('reparam-desc').textContent = m === 'naive'
+      ? 'Naive path: z is sampled from N(\u03BC, \u03C3\u00B2). The sampling node is stochastic \u2014 no gradient passes through it. \u03BC and \u03C3 are unreachable.'
+      : 'Reparameterized: z = \u03BC + \u03C3\u00B7\u03B5 where \u03B5 ~ N(0,1). Now z is a deterministic function of \u03BC and \u03C3. Gradients flow through both.';
+  };
+
+  window.animateGradient = function() {
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    gradAnimT = 0;
+    const startTime = performance.now();
+    const duration = mode === 'reparam' ? 2000 : 1500;
+
+    function tick(now) {
+      gradAnimT = Math.min(1, (now - startTime) / duration);
+      draw();
+      if (gradAnimT < 0.99) {
+        tone(250 + gradAnimT * 300, 'sine', 0.03, 0.015);
+      }
+      if (gradAnimT < 1) {
+        animFrame = requestAnimationFrame(tick);
+      } else {
+        if (mode === 'reparam') playOK();
+        else playFail();
+        document.getElementById('reparam-desc').textContent = mode === 'naive'
+          ? 'Gradient blocked at the sampling node. \u03BC and \u03C3 receive no gradient \u2014 the encoder cannot learn.'
+          : 'Gradient flows through the + and \u00D7 nodes to reach \u03BC and \u03C3. The encoder is trainable. \u2202z/\u2202\u03BC = 1, \u2202z/\u2202\u03C3 = \u03B5.';
+      }
+    }
+    animFrame = requestAnimationFrame(tick);
+    playClick();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 4: ELBO Builder
+// ═══════════════════════════════════════
+(function() {
+  let nextStep = 1;
+
+  window.revealElbo = function(n) {
+    if (n !== nextStep) return;
+    const el = document.getElementById('elbo-' + n);
+    el.classList.add('revealed');
+    nextStep = n + 1;
+    playReveal();
+  };
+})();
+
+// ═══════════════════════════════════════
+// DEMO 5: Beta-VAE Tradeoff
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('beta-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 300;
+
+  // Simulated shape data for reconstruction/generation demo
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw(parseFloat(document.getElementById('beta-slider').value) / 100);
+  }
+
+  function draw(beta) {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const halfW = W / 2;
+    const pad = { l: 20, r: 20, t: 36, b: 20 };
+
+    // Headers
+    ctx.fillStyle = '#7a7870'; ctx.font = "10px 'DM Sans'"; ctx.textAlign = 'center';
+    ctx.fillText('Reconstruction Quality', halfW / 2, 16);
+    ctx.fillText('Sample Quality', halfW + halfW / 2, 16);
+
+    // Divider
+    ctx.beginPath(); ctx.moveTo(halfW, pad.t - 10); ctx.lineTo(halfW, H_PX - pad.b);
+    ctx.strokeStyle = '#e2dfd8'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Reconstruction: sharp at beta=0, blurry at high beta
+    const reconBlur = Math.min(1, beta * 0.5);
+    const reconConf = Math.max(0.2, 1 - reconBlur * 0.8);
+    const shapes = ['circle', 'square', 'triangle', 'star'];
+    const sColors = ['#2a5db0', '#c4622d', '#1a7a4a', '#6b3fa0'];
+
+    shapes.forEach((shape, i) => {
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+      const cx = pad.l + 40 + col * (halfW - pad.l - pad.r - 40) / 1.3;
+      const cy = pad.t + 30 + row * 110;
+
+      // Original (faint)
+      ctx.globalAlpha = 0.2;
+      drawMiniShape(ctx, cx - 20, cy, 40, shape, sColors[i], 1);
+      ctx.globalAlpha = 1;
+
+      // Arrow
+      ctx.fillStyle = '#ccc'; ctx.font = "12px 'DM Sans'"; ctx.textAlign = 'center';
+      ctx.fillText('\u2192', cx + 5, cy + 3);
+
+      // Reconstructed (affected by beta)
+      if (reconBlur > 0.7) {
+        // Very blurry - draw as a faded blob
+        ctx.beginPath(); ctx.arc(cx + 30, cy, 18, 0, Math.PI * 2);
+        ctx.fillStyle = sColors[i] + '30'; ctx.fill();
+      }
+      drawMiniShape(ctx, cx + 30, cy, 40, shape, sColors[i], reconConf);
+    });
+
+    // Sample quality: noise at beta=0, shapes at beta>=1
+    const sampleConf = Math.min(1, beta * 0.8);
+    const sampleShapes = ['circle', 'triangle', 'star', 'square'];
+
+    sampleShapes.forEach((shape, i) => {
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+      const cx = halfW + pad.l + 40 + col * (halfW - pad.l - pad.r - 40) / 1.3;
+      const cy = pad.t + 30 + row * 110;
+
+      if (sampleConf < 0.3) {
+        // Noise
+        for (let j = 0; j < 12; j++) {
+          ctx.fillStyle = `rgba(180,180,180,${Math.random() * 0.4})`;
+          ctx.fillRect(cx - 16 + Math.random() * 32, cy - 16 + Math.random() * 32,
+                       4 + Math.random() * 6, 4 + Math.random() * 6);
+        }
+      } else {
+        drawMiniShape(ctx, cx, cy, 40, shape, sColors[i], sampleConf);
+      }
+    });
+
+    // Quality bars
+    const barY = H_PX - 50;
+    const barH = 10;
+
+    // Reconstruction bar
+    ctx.fillStyle = '#e2dfd8';
+    ctx.fillRect(pad.l, barY, halfW - pad.l - pad.r - 10, barH);
+    ctx.fillStyle = '#2a5db0';
+    ctx.fillRect(pad.l, barY, (halfW - pad.l - pad.r - 10) * reconConf, barH);
+    ctx.fillStyle = '#7a7870'; ctx.font = "8px 'DM Mono'"; ctx.textAlign = 'left';
+    ctx.fillText(`recon: ${(reconConf * 100).toFixed(0)}%`, pad.l, barY + barH + 12);
+
+    // Sample bar
+    ctx.fillStyle = '#e2dfd8';
+    ctx.fillRect(halfW + pad.l, barY, halfW - pad.l - pad.r - 10, barH);
+    ctx.fillStyle = '#1a7a4a';
+    ctx.fillRect(halfW + pad.l, barY, (halfW - pad.l - pad.r - 10) * sampleConf, barH);
+    ctx.fillText(`sample: ${(sampleConf * 100).toFixed(0)}%`, halfW + pad.l, barY + barH + 12);
+  }
+
+  window.onBetaSlider = function(v) {
+    const beta = parseInt(v) / 100;
+    document.getElementById('beta-val').textContent = beta.toFixed(2);
+    tone(200 + beta * 150, 'triangle', 0.08, 0.04);
+    draw(beta);
+    const desc = document.getElementById('beta-desc');
+    if (beta < 0.05) desc.textContent = '\u03B2 = 0 \u2014 Pure autoencoder. Sharp reconstruction, useless samples.';
+    else if (beta < 0.5) desc.textContent = `\u03B2 = ${beta.toFixed(2)} \u2014 Light regularization. Reconstruction still good, samples improving.`;
+    else if (beta < 1.5) desc.textContent = `\u03B2 = ${beta.toFixed(2)} \u2014 Standard VAE range. Balanced reconstruction and generation.`;
+    else if (beta < 3) desc.textContent = `\u03B2 = ${beta.toFixed(2)} \u2014 Heavy regularization. Smooth samples, blurry reconstruction.`;
+    else desc.textContent = `\u03B2 = ${beta.toFixed(2)} \u2014 Posterior collapse regime. Everything looks the same.`;
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 6: Latent Space Interpolation
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('interp-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 280;
+
+  const decodedEl = document.getElementById('interp-decoded');
+  const descEl = document.getElementById('interp-desc');
+
+  let pointA = null, pointB = null;
+  let interpT = 0;
+  const range = 3;
+
+  // Build decoded strip
+  const nStrip = 9;
+  const stripCells = [];
+  for (let i = 0; i < nStrip; i++) {
+    const div = document.createElement('div');
+    div.style.cssText = 'width:48px;height:48px;border:1px solid #e2dfd8;background:white;position:relative;';
+    const cvs = document.createElement('canvas');
+    cvs.width = 48 * devicePixelRatio; cvs.height = 48 * devicePixelRatio;
+    cvs.style.cssText = 'width:48px;height:48px;';
+    cvs.getContext('2d').scale(devicePixelRatio, devicePixelRatio);
+    div.appendChild(cvs);
+    decodedEl.appendChild(div);
+    stripCells.push(cvs);
+  }
+
+  // Shape clusters for VAE-like decoding
+  const clusters = [
+    { cx: -1.2, cy: 1.5, shape: 'circle', color: '#2a5db0' },
+    { cx: 1.5, cy: 1.2, shape: 'square', color: '#c4622d' },
+    { cx: -1.5, cy: -1.0, shape: 'triangle', color: '#1a7a4a' },
+    { cx: 1.2, cy: -1.5, shape: 'star', color: '#6b3fa0' },
+    { cx: 0.0, cy: 0.2, shape: 'cross', color: '#8b5e0a' }
+  ];
+
+  // Pre-generate scatter points to avoid jitter on redraw
+  const scatterPoints = clusters.map(cl => {
+    const pts = [];
+    for (let i = 0; i < 20; i++) {
+      pts.push({ x: cl.cx + (Math.random() * 0.8 - 0.4), y: cl.cy + (Math.random() * 0.8 - 0.4) });
+    }
+    return pts;
+  });
+
+  // Smooth VAE-like decode
+  function vaeDecodeSmooth(z1, z2) {
+    let totalW = 0;
+    const weights = clusters.map(cl => {
+      const d = Math.sqrt((z1 - cl.cx) ** 2 + (z2 - cl.cy) ** 2);
+      const w = Math.exp(-d * 1.5);
+      totalW += w;
+      return w;
+    });
+    return { weights: weights.map(w => w / totalW), clusters };
+  }
+
+  function drawBlendedShape(cvs, z1, z2) {
+    const sctx = cvs.getContext('2d');
+    sctx.clearRect(0, 0, 48, 48);
+    const { weights } = vaeDecodeSmooth(z1, z2);
+
+    // Draw blended: shape with highest weight dominates
+    let maxI = 0;
+    weights.forEach((w, i) => { if (w > weights[maxI]) maxI = i; });
+
+    // Draw top 2 shapes blended
+    const sorted = weights.map((w, i) => ({ w, i })).sort((a, b) => b.w - a.w);
+
+    sorted.slice(0, 2).forEach(({ w, i }) => {
+      sctx.globalAlpha = w;
+      const cl = clusters[i];
+      drawMiniShape(sctx, 24, 24, 40, cl.shape, cl.color, w);
+    });
+    sctx.globalAlpha = 1;
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+    const pad = 30;
+    const gw = W - pad * 2, gh = H_PX - pad * 2;
+
+    function px(x) { return pad + (x + range) / (2 * range) * gw; }
+    function py(y) { return pad + (range - y) / (2 * range) * gh; }
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.8;
+    for (let v = -2; v <= 2; v++) {
+      ctx.beginPath(); ctx.moveTo(px(v), pad); ctx.lineTo(px(v), pad + gh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad, py(v)); ctx.lineTo(pad + gw, py(v)); ctx.stroke();
+    }
+
+    // Cluster points (faint, pre-generated)
+    clusters.forEach((cl, ci) => {
+      scatterPoints[ci].forEach(pt => {
+        ctx.beginPath(); ctx.arc(px(pt.x), py(pt.y), 2, 0, Math.PI * 2);
+        ctx.fillStyle = cl.color + '30'; ctx.fill();
+      });
+    });
+
+    // Axes
+    ctx.strokeStyle = '#c8c4bc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, py(0)); ctx.lineTo(pad + gw, py(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(0), pad); ctx.lineTo(px(0), pad + gh); ctx.stroke();
+
+    // Draw points A and B
+    if (pointA) {
+      ctx.beginPath(); ctx.arc(px(pointA[0]), py(pointA[1]), 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#2a5db0'; ctx.shadowColor = '#2a5db0'; ctx.shadowBlur = 6; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.fillStyle = 'white'; ctx.font = "bold 9px 'DM Sans'"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('A', px(pointA[0]), py(pointA[1]));
+    }
+    if (pointB) {
+      ctx.beginPath(); ctx.arc(px(pointB[0]), py(pointB[1]), 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#c4622d'; ctx.shadowColor = '#c4622d'; ctx.shadowBlur = 6; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.fillStyle = 'white'; ctx.font = "bold 9px 'DM Sans'"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('B', px(pointB[0]), py(pointB[1]));
+    }
+
+    // Interpolation line and current point
+    if (pointA && pointB) {
+      ctx.beginPath();
+      ctx.moveTo(px(pointA[0]), py(pointA[1]));
+      ctx.lineTo(px(pointB[0]), py(pointB[1]));
+      ctx.strokeStyle = '#c4622d44'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+      const iz1 = pointA[0] + (pointB[0] - pointA[0]) * interpT;
+      const iz2 = pointA[1] + (pointB[1] - pointA[1]) * interpT;
+
+      ctx.beginPath(); ctx.arc(px(iz1), py(iz2), 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#c4622d'; ctx.fill();
+
+      // Update strip
+      for (let i = 0; i < nStrip; i++) {
+        const t = i / (nStrip - 1);
+        const z1 = pointA[0] + (pointB[0] - pointA[0]) * t;
+        const z2 = pointA[1] + (pointB[1] - pointA[1]) * t;
+        drawBlendedShape(stripCells[i], z1, z2);
+        stripCells[i].parentElement.style.borderColor = (Math.abs(t - interpT) < 0.06) ? '#c4622d' : '#e2dfd8';
+      }
+    }
+
+    ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'center';
+    ctx.fillText('z\u2081', pad + gw / 2, H_PX - 5);
+  }
+
+  function onClick(ex, ey) {
+    const W = c.offsetWidth;
+    const pad = 30;
+    const gw = W - pad * 2, gh = H_PX - pad * 2;
+    const z1 = (ex - pad) / gw * 2 * range - range;
+    const z2 = range - (ey - pad) / gh * 2 * range;
+
+    if (!pointA) {
+      pointA = [z1, z2];
+      descEl.textContent = 'Point A placed. Click to place point B.';
+      playClick();
+    } else if (!pointB) {
+      pointB = [z1, z2];
+      descEl.textContent = 'Both points placed. Drag the interpolation slider.';
+      interpT = 0;
+      document.getElementById('interp-slider').value = 0;
+      document.getElementById('interp-val').textContent = 'A';
+      playOK();
+    }
+    draw();
+  }
+
+  c.addEventListener('click', e => { const r = c.getBoundingClientRect(); onClick(e.clientX - r.left, e.clientY - r.top); });
+  c.addEventListener('touchstart', e => { const r = c.getBoundingClientRect(); onClick(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); }, { passive: true });
+
+  window.onInterpSlider = function(v) {
+    interpT = parseInt(v) / 100;
+    const label = interpT < 0.02 ? 'A' : interpT > 0.98 ? 'B' : (interpT * 100).toFixed(0) + '%';
+    document.getElementById('interp-val').textContent = label;
+    tone(300 + interpT * 300, 'triangle', 0.06, 0.025);
+    draw();
+  };
+
+  window.resetInterp = function() {
+    pointA = null; pointB = null; interpT = 0;
+    document.getElementById('interp-slider').value = 0;
+    document.getElementById('interp-val').textContent = 'A';
+    descEl.textContent = 'Click to place point A';
+    stripCells.forEach(cvs => cvs.getContext('2d').clearRect(0, 0, 48, 48));
+    draw();
+    playClick();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>

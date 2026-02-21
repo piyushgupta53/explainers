@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Loss Landscape &mdash; Why Gradient Descent Has No Business Working</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+:root{--bg:#faf9f6;--bg2:#f3f1ec;--bg3:#eceae4;--text:#1c1c1a;--muted:#7a7870;--border:#e2dfd8;--accent:#c4622d;--accent-light:#fdf0e8;--blue:#2a5db0;--blue-light:#eef3fc;--green:#1a7a4a;--green-light:#eaf5ee;--purple:#6b3fa0;--purple-light:#f2ecfa;--code-bg:#f5f3ee;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Lora',serif;-webkit-font-smoothing:antialiased;line-height:1;}
+.container{max-width:720px;margin:0 auto;padding:0 2rem;}
+.wide{max-width:960px;margin:0 auto;padding:0 2rem;}
+
+header{border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;background:rgba(250,249,246,0.95);backdrop-filter:blur(6px);}
+.header-inner{max-width:960px;margin:0 auto;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.back-link{font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--muted);text-decoration:none;transition:color .15s;}
+.back-link:hover{color:var(--accent);}
+
+.progress-bar{height:2px;background:var(--border);position:fixed;top:0;left:0;right:0;z-index:200;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .1s;}
+
+.masthead{padding:5rem 0 3rem;border-bottom:1px solid var(--border);}
+.post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;font-family:'DM Sans',sans-serif;}
+.post-category{font-size:0.72rem;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:3px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;}
+.post-date,.post-read{font-size:0.8rem;color:var(--muted);}
+h1.post-title{font-family:'Lora',serif;font-size:clamp(2rem,5vw,2.9rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.2rem;}
+.post-subtitle{font-size:1.1rem;line-height:1.65;color:var(--muted);font-style:italic;max-width:560px;}
+
+.toc{background:var(--bg2);border:1px solid var(--border);padding:1.5rem 2rem;margin:3rem 0;}
+.toc-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;}
+.toc ol{list-style:none;counter-reset:toc;}
+.toc li{counter-increment:toc;margin-bottom:.3rem;}
+.toc li::before{content:counter(toc,upper-roman)". ";font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:.3rem;}
+.toc a{font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--blue);text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.prose{padding:2.5rem 0;}
+.section-marker{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;margin-top:4rem;display:block;}
+h2{font-family:'Lora',serif;font-size:1.65rem;font-weight:500;line-height:1.3;letter-spacing:-.015em;margin-bottom:1.2rem;color:var(--text);}
+h3{font-family:'Lora',serif;font-size:1.2rem;font-weight:500;font-style:italic;margin-top:2.2rem;margin-bottom:.8rem;color:var(--text);}
+p{font-size:1rem;line-height:1.78;margin-bottom:1.2rem;color:#2a2a28;}
+strong{font-weight:600;color:var(--text);}
+em{font-style:italic;}
+code{font-family:'DM Mono',monospace;font-size:.82em;background:var(--code-bg);padding:1px 5px;border-radius:3px;color:var(--accent);}
+.math{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--purple);background:var(--purple-light);padding:1px 6px;border-radius:3px;}
+.section-sep{border:none;border-top:1px solid var(--border);margin:4rem 0;}
+sup{font-size:.65em;color:var(--blue);cursor:pointer;}
+sup a{color:inherit;text-decoration:none;}
+sup a:hover{text-decoration:underline;}
+
+.callout{border-left:3px solid var(--border);padding:.8rem 1.2rem;margin:1.8rem 0;background:var(--bg2);}
+.callout.note{border-color:var(--blue);background:var(--blue-light);}
+.callout.insight{border-color:var(--accent);background:var(--accent-light);}
+.callout.math-callout{border-color:var(--purple);background:var(--purple-light);}
+.callout.result{border-color:var(--green);background:var(--green-light);}
+.callout-label{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.callout p{font-size:.92rem;margin-bottom:0;line-height:1.65;}
+
+.math-block{background:var(--purple-light);border:1px solid rgba(107,63,160,.15);padding:1.5rem 2rem;margin:2rem 0;font-family:'DM Mono',monospace;font-size:.88rem;line-height:2;color:var(--purple);}
+.math-block .eq-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem;}
+.math-block .comment{color:var(--muted);font-size:.78rem;display:block;margin-top:.3rem;}
+
+.interactive-block{margin:2.5rem -1rem;background:var(--bg2);border:1px solid var(--border);padding:1.5rem;}
+@media(min-width:760px){.interactive-block{margin:2.5rem -2rem;padding:2rem;}}
+.interactive-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+.interactive-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.interactive-setup{font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+.btn{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;padding:7px 16px;border:1px solid var(--border);background:white;color:var(--text);cursor:pointer;border-radius:3px;transition:all .15s;margin:.3rem;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:#a84f25;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+.slider-group{display:flex;align-items:center;gap:.5rem;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex:1;min-width:180px;}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border);outline:none;cursor:pointer;flex:1;border-radius:1px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
+.slider-val{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);min-width:4ch;text-align:right;}
+
+.quiz-block{background:white;border:1px solid var(--border);padding:1.5rem;margin:2rem 0;}
+.quiz-q{font-size:.95rem;font-weight:600;margin-bottom:1rem;line-height:1.5;color:var(--text);}
+.quiz-options{display:flex;flex-direction:column;gap:.4rem;}
+.quiz-opt{text-align:left;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:.7rem 1rem;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;transition:all .15s;border-radius:2px;}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.quiz-opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.quiz-opt.wrong{border-color:#c0392b;background:#fef0ee;color:#c0392b;}
+.quiz-feedback{margin-top:.8rem;font-family:'DM Sans',sans-serif;font-size:.85rem;line-height:1.6;display:none;padding:.8rem;border-radius:2px;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.good{background:var(--green-light);color:var(--green);}
+.quiz-feedback.bad{background:#fef0ee;color:#c0392b;}
+
+.footnotes{border-top:1px solid var(--border);padding-top:2rem;margin-top:4rem;}
+.footnotes-title{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.footnote{font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;display:flex;gap:.5rem;}
+.fn-num{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--blue);flex-shrink:0;}
+
+footer{border-top:1px solid var(--border);padding:2rem;margin-top:4rem;}
+.footer-inner{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:.8rem;}
+.footer-inner a{color:var(--muted);text-decoration:none;}
+.footer-inner a:hover{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PAGE-SPECIFIC ── */
+canvas{width:100%;display:block;border-radius:2px;}
+.demo-readout{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.8;}
+.side-by-side{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;}
+@media(max-width:640px){.side-by-side{grid-template-columns:1fr;}}
+.side-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;text-align:center;}
+.eigen-display{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.8;text-align:center;}
+.dim-stat{display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:.82rem;}
+.dim-stat:last-child{border-bottom:none;}
+.dim-stat .label{color:var(--muted);}
+.dim-stat .val{font-family:'DM Mono',monospace;color:var(--accent);font-weight:500;}
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<header>
+  <div class="header-inner">
+    <a href="../index.html" class="back-link">&larr; Distilled</a>
+    <span style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted)">
+      Deep Learning &middot; 04
+    </span>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="container">
+    <div class="post-meta">
+      <span class="post-category">Deep Learning</span>
+      <span class="post-date">2026</span>
+      <span class="post-read">~25 min read</span>
+    </div>
+    <h1 class="post-title">The Loss Landscape &mdash; Why Gradient Descent Has No Business Working</h1>
+    <p class="post-subtitle">Classical optimization says gradient descent should get stuck. In real networks, it almost never does. The geometry of high-dimensional loss surfaces explains why.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="prose">
+
+    <nav class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#s1">The Textbook Lie</a></li>
+        <li><a href="#s2">Critical Points in High Dimensions</a></li>
+        <li><a href="#s3">The Saddle Point Escape</a></li>
+        <li><a href="#s4">The Overparameterization Mystery</a></li>
+        <li><a href="#s5">Sharp vs Flat Minima</a></li>
+        <li><a href="#s6">The Connected Valley</a></li>
+        <li><a href="#s7">What the Landscape Really Looks Like</a></li>
+        <li><a href="#s8">Synthesis</a></li>
+      </ol>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION I -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s1">I. &mdash; The Picture Everyone Draws</span>
+    <h2>The Textbook Lie</h2>
+
+    <p>Open any machine learning textbook. Find the chapter on optimization. There will be a picture. It shows a smooth 2D surface &mdash; rolling hills, a few valleys, one global minimum at the bottom. Little arrows show gradient descent rolling a ball downhill. The ball might get stuck in a local minimum. The author will note that this is a problem and then move on.</p>
+
+    <p>This picture is a lie. Not an oversimplification. Not a pedagogical convenience. A lie &mdash; in the specific sense that it generates predictions about neural network training that are systematically wrong.</p>
+
+    <p>The 2D picture predicts that gradient descent should frequently get stuck in bad local minima. It doesn&rsquo;t. The picture predicts that the quality of the solution should depend critically on initialization. In practice, random initializations converge to solutions that perform nearly identically. The picture predicts that larger networks, with more parameters and therefore more places to get stuck, should be harder to train. The opposite is true: larger networks are <em>easier</em> to train, and they find better solutions.<sup><a href="#fn-1" title="The empirical observation that larger models train more easily, not less, contradicts the classical optimization perspective.">[1]</a></sup></p>
+
+    <p>Every one of these predictions fails because the picture is 2-dimensional and the real loss landscape of a neural network is not. A small MNIST classifier lives in 118,282-dimensional space. GPT-2 lives in 1.5-billion-dimensional space. The geometry of high-dimensional spaces is alien to human intuition, and almost nothing about 2D optimization transfers.</p>
+
+    <p>Drop a ball on the surface below. Watch it find a local minimum and get stuck. Then ask yourself: does this match your experience training neural networks?</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; 2D Loss Surface Explorer</div>
+      <p class="interactive-setup">Click anywhere on the surface to drop a gradient descent ball. It will follow the gradient downhill and settle into the nearest minimum. Adjust the learning rate to see how it changes the trajectory. Try many starting points &mdash; notice how different initializations land in different minima. This is what the textbook warns about. This is also not what happens in real networks.</p>
+      <canvas id="surface-canvas" height="380"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group" style="min-width:220px;">
+          <span>Learning rate:</span>
+          <input type="range" id="surface-lr" min="0.001" max="0.05" step="0.001" value="0.012" oninput="onSurfaceLR(this.value)">
+          <span class="slider-val" id="surface-lr-val">0.012</span>
+        </div>
+        <button class="btn" onclick="clearSurfaceBalls()">&#8634; Clear All</button>
+      </div>
+      <div class="demo-readout" id="surface-readout">Click the surface to drop a gradient descent ball.</div>
+    </div>
+
+    <p>In 2D, the ball gets trapped. It finds one valley and stays there, oblivious to the deeper valley nearby. This is the failure mode that dominates textbook discussions of optimization. And for 2-dimensional problems, it is real.</p>
+
+    <p>But neural networks do not live in 2 dimensions. And what follows is a story about how everything changes when the number of dimensions climbs from 2 to 100 to 100,000 to 100 million.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION II -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s2">II. &mdash; The Coin-Flip Argument</span>
+    <h2>Critical Points in High Dimensions</h2>
+
+    <p>A <strong>critical point</strong> is any point where the gradient is zero &mdash; the ball stops rolling. There are three kinds. A <strong>local minimum</strong>: the surface curves upward in every direction. A <strong>local maximum</strong>: it curves downward in every direction. And a <strong>saddle point</strong>: it curves up in some directions and down in others.</p>
+
+    <p>To determine which kind a critical point is, you look at the <strong>Hessian</strong> &mdash; the matrix of second derivatives. Each eigenvalue of the Hessian tells you the curvature along one independent direction. Positive eigenvalue: the surface curves up (a valley in that direction). Negative eigenvalue: the surface curves down (a ridge). For a point to be a local minimum, <em>every</em> eigenvalue must be positive. Every single one.</p>
+
+    <div class="math-block">
+      <span class="eq-label">Classification of Critical Points</span>
+      <div>All eigenvalues &lambda;<sub>i</sub> &gt; 0 &nbsp;&rarr;&nbsp; local minimum</div>
+      <div>All eigenvalues &lambda;<sub>i</sub> &lt; 0 &nbsp;&rarr;&nbsp; local maximum</div>
+      <div>Mixed signs &nbsp;&rarr;&nbsp; saddle point</div>
+      <span class="comment">&mdash; in n dimensions, the Hessian has n eigenvalues, one per independent direction</span>
+    </div>
+
+    <p>Now here is the argument that changes everything. Imagine you are at a random critical point in a high-dimensional loss landscape. The Hessian has <em>n</em> eigenvalues. Under reasonable assumptions about the landscape &mdash; specifically, that the sign of each eigenvalue is an approximately independent random event &mdash; you can model each eigenvalue&rsquo;s sign as a coin flip.<sup><a href="#fn-2" title="Bray & Dean (2007) proved this rigorously for Gaussian random fields. The argument extends heuristically to neural network loss surfaces via random matrix theory.">[2]</a></sup></p>
+
+    <p>For the critical point to be a local minimum, all <em>n</em> coins must come up heads.</p>
+
+    <p>In 2 dimensions: probability = <span class="math">0.5<sup>2</sup> = 0.25</span>. One in four critical points is a minimum. Local minima are common. The textbook picture is accurate.</p>
+
+    <p>In 10 dimensions: <span class="math">0.5<sup>10</sup> = 0.00098</span>. Roughly one in a thousand.</p>
+
+    <p>In 100 dimensions: <span class="math">0.5<sup>100</sup> &approx; 10<sup>&minus;30</sup></span>. To encounter a single local minimum, you would need to examine more critical points than there are atoms in the observable universe.</p>
+
+    <p>In 100,000 dimensions &mdash; a small network: the probability is not just small. It is <span class="math">0.5<sup>100000</sup> &approx; 10<sup>&minus;30103</sup></span>. The number has <em>thirty thousand digits of zeros</em> before the first significant figure. Local minima are not rare. They are cosmically, absurdly, impossibly rare.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Dimension vs Critical Point Type</div>
+      <p class="interactive-setup">Drag the dimension slider. Watch the probability that a random critical point is a local minimum (all eigenvalues positive) collapse to zero. The blue region is saddle points; the green sliver is minima. By 20 dimensions, minima are already invisible at this resolution. This is the fundamental geometric fact that makes high-dimensional optimization qualitatively different from what the textbook picture suggests.</p>
+      <canvas id="dim-canvas" height="300"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group" style="min-width:280px;">
+          <span>Dimensions:</span>
+          <input type="range" id="dim-slider" min="1" max="100" step="1" value="2" oninput="onDimSlider(this.value)">
+          <span class="slider-val" id="dim-val">2</span>
+        </div>
+      </div>
+      <div style="margin-top:.8rem;background:white;border:1px solid var(--border);padding:1rem;">
+        <div class="dim-stat"><span class="label">Dimensions</span><span class="val" id="dim-n">2</span></div>
+        <div class="dim-stat"><span class="label">P(local minimum)</span><span class="val" id="dim-pmin">25.00%</span></div>
+        <div class="dim-stat"><span class="label">P(saddle point)</span><span class="val" id="dim-psaddle">50.00%</span></div>
+        <div class="dim-stat"><span class="label">P(local maximum)</span><span class="val" id="dim-pmax">25.00%</span></div>
+        <div class="dim-stat"><span class="label">Expected saddle ratio</span><span class="val" id="dim-ratio">2 : 1</span></div>
+      </div>
+    </div>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>In high dimensions, almost every critical point is a saddle point. Local minima are not merely rare &mdash; they are exponentially suppressed. The probability drops as <span class="math">2<sup>&minus;n</sup></span> where <em>n</em> is the number of dimensions. For any realistic neural network, the probability of encountering a true local minimum by chance is zero for all practical purposes.</p>
+    </div>
+
+    <p>This changes the entire character of the optimization problem. The textbook worry &mdash; getting stuck in a bad local minimum &mdash; is based on a phenomenon that essentially does not occur in the relevant regime. What happens instead is that gradient descent encounters saddle points. And saddle points are a fundamentally different kind of obstacle.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION III -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s3">III. &mdash; The Escape</span>
+    <h2>The Saddle Point Escape</h2>
+
+    <p>A saddle point looks like a mountain pass: the surface curves upward in some directions and downward in others. If you are standing at a saddle point and can only see the upward-curving directions, it looks like a minimum. You might conclude you are stuck.</p>
+
+    <p>But you are not stuck. You are merely looking in the wrong directions.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Anatomy of a Saddle Point</div>
+      <p class="interactive-setup">Drag the red point around the saddle surface <span class="math">f(x,y) = x&sup2; &minus; y&sup2;</span>. The eigenvalues of the Hessian are displayed below. Along the x-axis, the curvature is positive (valley); along the y-axis, it is negative (ridge). At the origin, the gradient is zero but the point is not a minimum &mdash; there is always a downhill direction. The gradient arrows show the escape route.</p>
+      <canvas id="saddle-canvas" height="340"></canvas>
+      <div class="eigen-display" id="saddle-info">Eigenvalues: &lambda;<sub>1</sub> = +2.0 (valley), &lambda;<sub>2</sub> = &minus;2.0 (ridge) &mdash; Saddle point</div>
+    </div>
+
+    <p>A saddle point has at least one direction with negative curvature &mdash; a direction where the loss <em>decreases</em>. The gradient at a saddle point is zero, but any infinitesimal perturbation in a downhill direction restores a nonzero gradient. The ball starts rolling again.</p>
+
+    <p>In practice, gradient descent does slow down near saddle points. The gradient shrinks as you approach the critical point, and with a finite learning rate, progress becomes glacially slow along the flat directions. This <strong>saddle point plateau</strong> is responsible for most of the training slowdowns people attribute to &ldquo;getting stuck.&rdquo; The loss curve goes flat for hundreds or thousands of steps, then suddenly drops. It looked like convergence. It was actually the optimizer creeping along a saddle&rsquo;s flat direction until it found the downhill edge and escaped.<sup><a href="#fn-3" title="Dauphin et al. (2014) showed that most apparent convergence failures in neural network training are caused by saddle points, not local minima.">[3]</a></sup></p>
+
+    <h3>Why noise helps</h3>
+
+    <p>Stochastic gradient descent (SGD) &mdash; computing gradients on small random batches instead of the full dataset &mdash; introduces noise into the gradient estimate. Near a saddle point, this noise is precisely what you want. The gradient itself is nearly zero, but the stochastic noise randomly pushes the parameters off the saddle in various directions. Some of those directions will be the downhill ones. The noise is not a bug; it is an escape mechanism.<sup><a href="#fn-4" title="Jin et al. (2017) proved that stochastic gradient descent escapes saddle points in polynomial time, and that adding noise to the gradient is sufficient to avoid non-minimum critical points.">[4]</a></sup></p>
+
+    <p>This is deeply counterintuitive. More randomness leads to <em>better</em> optimization. Larger batch sizes (less noise) can actually slow training down because the optimizer spends more time in saddle plateaus. There is a reason the standard recipe for training neural networks uses mini-batch SGD, not full-batch gradient descent. And it is not just computational efficiency.</p>
+
+    <div class="quiz-block">
+      <div class="quiz-q">A researcher observes that their neural network&rsquo;s loss has been flat for 2,000 training steps. They conclude the network is stuck in a local minimum and restart with a different initialization. What is the more likely explanation?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','In high-dimensional spaces, local minima are exponentially rare. The probability of landing in one is vanishingly small. The flat loss is far more likely explained by a saddle point, where the gradient is near-zero but escape is still possible.')">The network has converged to a local minimum. Restarting is the correct strategy.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf1','Correct. The flat loss is almost certainly a saddle point plateau. The gradient is nearly zero in most directions, but at least one direction leads downhill. The optimizer is creeping along the flat ridge. If you wait (or decrease the batch size to increase gradient noise), the network will likely escape and the loss will drop suddenly. Restarting throws away all the progress the optimizer made in navigating to this region of parameter space.','')">The network is traversing a saddle point plateau. Patience (or more SGD noise) would likely lead to an escape.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf1','','Learning rate issues would typically show either divergence (too high) or consistently slow progress (too low), not a sharp plateau. The characteristic plateau-then-sudden-drop pattern is the signature of saddle point escape.')">The learning rate is too small. Increasing it will resume progress.</button>
+      </div>
+      <div class="quiz-feedback" id="qf1"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION IV -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s4">IV. &mdash; The Paradox</span>
+    <h2>The Overparameterization Mystery</h2>
+
+    <p>Classical statistical learning theory makes a clear prediction: if your model has more parameters than data points, it will memorize the training data and fail on new data. This is the <strong>bias-variance tradeoff</strong>, and for decades it was the central organizing principle of machine learning. Use a model that is just complex enough for the data. No more.</p>
+
+    <p>Neural networks violate this principle spectacularly.</p>
+
+    <p>A ResNet-18 trained on CIFAR-10 has 11.2 million parameters and 50,000 training images. The model has 224 parameters per data point. A language model like GPT-3 has 175 billion parameters. Classical theory says these networks should memorize the training data and produce garbage on anything new. Instead, they generalize.</p>
+
+    <p>The paradox deepens when you look at what happens as you <em>increase</em> the number of parameters. Classical theory predicts a U-shaped curve: test error decreases as model size grows (the model gets more expressive), then hits a sweet spot, then increases as the model starts overfitting. But the actual curve is different. Test error decreases, increases briefly at the interpolation threshold &mdash; the point where the model first has enough parameters to perfectly fit the training data &mdash; and then <em>decreases again</em> as you add more parameters.<sup><a href="#fn-5" title="Belkin et al. (2019), &lsquo;Reconciling Modern Machine Learning Practice and the Classical Bias-Variance Trade-off.&rsquo; This paper coined the term &lsquo;double descent&rsquo; for this phenomenon.">[5]</a></sup></p>
+
+    <p>This is the <strong>double descent</strong> phenomenon. The second descent &mdash; where more parameters <em>improve</em> generalization beyond the interpolation threshold &mdash; has no explanation in classical statistics. It requires thinking about the loss landscape.</p>
+
+    <h3>Why overparameterization changes the landscape</h3>
+
+    <p>When a network has more parameters than the minimum needed to fit the training data, there is not one solution but a continuous <em>manifold</em> of solutions &mdash; an entire subspace of parameter settings that all achieve zero training loss. Gradient descent does not just find <em>a</em> solution. It finds a <em>specific</em> solution on this manifold, and the one it finds depends on the optimization dynamics.</p>
+
+    <p>The critical fact: among all the parameter settings that achieve zero training loss, gradient descent (especially SGD) is biased toward solutions with smaller parameter norms &mdash; <strong>simpler solutions</strong>. This is an implicit regularization effect. Nobody designed it. It emerges from the interaction between the geometry of the loss landscape and the dynamics of the optimizer. The landscape of an overparameterized network is not a minefield of overfitting traps. It is a broad, connected valley where the optimizer naturally drifts toward the simplest configuration that fits the data.<sup><a href="#fn-6" title="Neyshabur et al. (2015) and Gunasekar et al. (2018) established that gradient descent on overparameterized models implicitly regularizes, biasing solutions toward low-norm (simpler) parameter settings.">[6]</a></sup></p>
+
+    <div class="callout result">
+      <div class="callout-label">Result</div>
+      <p>Overparameterization does not make optimization harder &mdash; it makes it dramatically easier. More parameters mean more directions to move in, fewer saddle point traps, and a connected solution manifold. The reason massive networks generalize is not despite their size but partly because of it: the optimizer has room to navigate to the right kind of solution.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION V -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s5">V. &mdash; The Geometry of Generalization</span>
+    <h2>Sharp vs Flat Minima</h2>
+
+    <p>Not all minima are equal. Two parameter settings can achieve the same training loss but generalize completely differently. The difference is in the <strong>geometry</strong> of the minimum they sit in.</p>
+
+    <p>A <strong>sharp minimum</strong> sits at the bottom of a narrow, steep-walled valley. Small perturbations to the parameters cause the loss to spike. A <strong>flat minimum</strong> sits in a broad, gentle basin. You can perturb the parameters significantly and the loss barely changes.</p>
+
+    <p>Why does this matter for generalization? The training data is a sample from the true data distribution. The test data comes from the same distribution but is a different sample. This means the loss surface for test data is a <em>slightly shifted</em> version of the training loss surface. A sharp minimum on the training surface might correspond to a high-loss region on the test surface &mdash; the shift was enough to climb out of the narrow valley. A flat minimum, by contrast, barely changes under the same perturbation. The parameters still work because the basin is broad enough to contain both the training and test minima.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Sharp vs Flat Minima</div>
+      <p class="interactive-setup">Two minima, both at the same training loss. Drag the perturbation slider to simulate the shift between training and test distributions. Watch the sharp minimum&rsquo;s loss spike while the flat minimum&rsquo;s loss barely budges. This is why the shape of the minimum matters more than its depth.</p>
+      <div class="side-by-side">
+        <div>
+          <div class="side-label">Sharp Minimum</div>
+          <canvas id="sharp-canvas" height="200"></canvas>
+        </div>
+        <div>
+          <div class="side-label">Flat Minimum</div>
+          <canvas id="flat-canvas" height="200"></canvas>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group" style="min-width:280px;">
+          <span>Perturbation (train &rarr; test shift):</span>
+          <input type="range" id="perturb-slider" min="0" max="1" step="0.01" value="0" oninput="onPerturbSlider(this.value)">
+          <span class="slider-val" id="perturb-val">0.00</span>
+        </div>
+      </div>
+      <div class="demo-readout" id="sharp-flat-readout">Perturbation = 0. Both minima at training loss = 0.00.</div>
+    </div>
+
+    <p>Hochreiter and Schmidhuber proposed this connection between flat minima and generalization in 1997.<sup><a href="#fn-7" title="Hochreiter & Schmidhuber (1997), &lsquo;Flat Minima.&rsquo; Neural Computation. This early paper argued that seeking flat minima is equivalent to a form of minimum description length (MDL) complexity control.">[7]</a></sup> Two decades later, Keskar et al. showed empirically that large-batch training (less noise) converges to sharper minima with worse generalization, while small-batch SGD finds flatter minima that generalize better.<sup><a href="#fn-8" title="Keskar et al. (2017), &lsquo;On Large-Batch Training for Deep Learning: Generalization Gap and Sharp Minima.&rsquo;">[8]</a></sup></p>
+
+    <p>The noise in SGD is doing two things simultaneously: escaping saddle points (Section III) and preferring flat minima over sharp ones. Sharp minima are unstable under gradient noise &mdash; the stochastic fluctuations bounce the parameters out. Flat minima are stable &mdash; the noise perturbs the parameters but the loss stays low. SGD is an implicit geometry-aware optimizer. It selects for robustness.</p>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VI -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s6">VI. &mdash; The Valley</span>
+    <h2>The Connected Valley</h2>
+
+    <p>Suppose you train two copies of the same architecture from different random initializations. Both converge to a low training loss. Classical intuition says they found different local minima &mdash; isolated valleys separated by high ridges. But experimentally, this is often not what happens.</p>
+
+    <p>Draxler et al. (2018) and Garipov et al. (2018) discovered that for sufficiently overparameterized networks, you can find a continuous path in parameter space connecting two independently trained solutions along which the loss <em>stays low the entire way</em>.<sup><a href="#fn-9" title="Draxler et al. (2018), &lsquo;Essentially No Barriers in Neural Network Energy Landscape&rsquo;; Garipov et al. (2018), &lsquo;Loss Surfaces, Mode Connectivity, and Fast Ensembling of DNNs.&rsquo;">[9]</a></sup> The path is not a straight line &mdash; a straight line between two solutions typically crosses a high-loss ridge. But a slightly curved path avoids the ridge entirely.</p>
+
+    <p>This means the low-loss region is not a collection of isolated puddles. It is a single connected structure &mdash; a vast, winding valley that spans the parameter space. Different random initializations do not find different minima. They find different points in the <em>same valley</em>.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Loss Landscape Slice Viewer</div>
+      <p class="interactive-setup">This shows a 2D slice through a simulated high-dimensional loss landscape. The two markers represent independently trained solutions. Toggle between a straight-line path and a curved path connecting them. The straight line crosses a ridge; the curved path stays in the valley. Use the &ldquo;New Directions&rdquo; button to take a different random slice &mdash; the connected valley structure persists regardless of the slice.</p>
+      <canvas id="slice-canvas" height="340"></canvas>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.8rem;">
+        <button class="btn active" id="slice-btn-curved" onclick="setSliceMode('curved')">Curved Path</button>
+        <button class="btn" id="slice-btn-straight" onclick="setSliceMode('straight')">Straight Path</button>
+        <button class="btn" onclick="newSliceDirections()">&#8634; New Directions</button>
+      </div>
+      <div class="demo-readout" id="slice-readout">Curved path: loss stays below 0.15 along the entire connection.</div>
+    </div>
+
+    <p>This connected valley structure has a profound implication: <strong>there is essentially only one minimum.</strong> Not one point &mdash; one enormous connected region. All the local minima that gradient descent might find are part of the same basin. They differ in the fine details of their parameters, but their loss values are nearly identical and they generalize similarly. The optimization problem is not about finding the right valley. There is only one valley.</p>
+
+    <div class="callout insight">
+      <div class="callout-label">Insight</div>
+      <p>The loss landscape of overparameterized neural networks is not a rugged terrain of isolated minima. It is a single connected valley &mdash; an enormous, winding low-loss region where all good solutions live. Different random initializations explore different parts of the same valley. The question was never &ldquo;which minimum will we find?&rdquo; It was &ldquo;where in the valley will we end up?&rdquo; &mdash; and the answer is determined by the optimizer&rsquo;s implicit bias toward flat, simple solutions.</p>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s7">VII. &mdash; Looking at the Thing</span>
+    <h2>What the Landscape Really Looks Like</h2>
+
+    <p>You cannot visualize a 100,000-dimensional surface. You can take 2D slices.</p>
+
+    <p>In 2018, Li et al. introduced <strong>filter-normalized visualization</strong>, a technique for producing meaningful 2D slices through neural network loss landscapes.<sup><a href="#fn-10" title="Li et al. (2018), &lsquo;Visualizing the Loss Landscape of Neural Nets.&rsquo; NeurIPS. Introduced filter-wise normalization for loss landscape visualization, producing the now-iconic contour plots.">[10]</a></sup> The method works as follows: start at a trained solution &theta;*, pick two random directions in parameter space, normalize them to have the same scale as the network&rsquo;s filters, then evaluate the loss at <span class="math">&theta;* + &alpha; &middot; d<sub>1</sub> + &beta; &middot; d<sub>2</sub></span> for a grid of (&alpha;, &beta;) values.</p>
+
+    <p>The normalization step is critical. Without it, random directions in a space with millions of dimensions will have wildly different scales from the actual parameter vectors, and the resulting slices will look misleadingly flat or misleadingly chaotic depending on the scaling mismatch. Filter-normalized directions produce slices that reflect the landscape&rsquo;s actual local geometry.</p>
+
+    <p>What these slices revealed was striking. Networks <em>without</em> skip connections (like VGG-16) showed chaotic, irregular landscapes with many visible local minima and sharp transitions. Networks <em>with</em> skip connections (like ResNet-56) showed smooth, convex-looking basins &mdash; almost bowl-shaped. Skip connections, which were originally motivated by gradient flow (preventing vanishing gradients), turned out to have a second, equally important benefit: they <em>smooth the loss landscape itself</em>, making optimization fundamentally easier.</p>
+
+    <div class="interactive-block">
+      <div class="interactive-label">Interactive &mdash; Learning Rate Explorer</div>
+      <p class="interactive-setup">Watch gradient descent navigate a 1D loss landscape at different learning rates. Too small: the optimizer crawls and may plateau near saddle points. Too large: it overshoots and diverges. In between: it bounces past sharp minima (which it cannot stabilize in) and settles into flat minima (which are robust to the noise). The learning rate is not just a speed knob &mdash; it is a geometry selector.</p>
+      <canvas id="lr-canvas" height="280"></canvas>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.8rem;flex-wrap:wrap;">
+        <div class="slider-group" style="min-width:260px;">
+          <span>Learning rate:</span>
+          <input type="range" id="lr-slider" min="0.002" max="0.12" step="0.002" value="0.02" oninput="onLrSlider(this.value)">
+          <span class="slider-val" id="lr-val">0.020</span>
+        </div>
+        <button class="btn primary" onclick="runLrDemo()">&#9654; Run</button>
+        <button class="btn" onclick="resetLrDemo()">&#8634; Reset</button>
+      </div>
+      <div class="demo-readout" id="lr-readout">Click Run to start gradient descent from the left side of the landscape.</div>
+    </div>
+
+    <div class="quiz-block">
+      <div class="quiz-q">Two ResNet-50 models are trained from different random initializations on ImageNet. They achieve similar test accuracy (~76%). A researcher draws a straight line in parameter space between the two solutions and evaluates the loss along that line. What will they likely observe?</div>
+      <div class="quiz-options">
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','If the loss stayed low along a straight line, the loss landscape would be convex (bowl-shaped). It is not. The connected valley structure exists, but the connecting path is curved, not straight. A straight line cuts through high-loss regions &mdash; the ridge between the two arms of the valley.','')">Loss stays low the entire way &mdash; the solutions are in the same convex basin.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,true,'qf2','Correct. A straight line between two independently trained solutions typically crosses a high-loss barrier. The two solutions <em>are</em> connected by a low-loss path, but that path is curved, not straight. Garipov et al. (2018) showed you need to search for the curved path explicitly &mdash; for example, by finding a Bezier curve that minimizes the maximum loss along the connection. This reveals the connected valley structure that a straight line misses.','')">Loss spikes to a high value in the middle &mdash; a ridge separates the two solutions along the straight line.</button>
+        <button class="quiz-opt" onclick="handleQuiz(this,false,'qf2','','The loss landscape is high-dimensional and structured. It does not look random. Along the straight line, there is typically a single barrier (ridge) between the two solutions, not random fluctuations. The connected valley structure is not random &mdash; it reflects the underlying symmetries of the network architecture.','')">Loss fluctuates randomly &mdash; the landscape is too high-dimensional to have coherent structure.</button>
+      </div>
+      <div class="quiz-feedback" id="qf2"></div>
+    </div>
+
+    <hr class="section-sep">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SECTION VIII -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <span class="section-marker" id="s8">VIII. &mdash; Putting It Together</span>
+    <h2>Synthesis</h2>
+
+    <p>The story of the loss landscape is a story about what happens when you scale. In low dimensions, optimization is hard in the way the textbook says: local minima everywhere, critical dependence on initialization, no free lunch. As the number of dimensions grows, the character of the problem undergoes a phase transition. Local minima become exponentially rare. Saddle points dominate, and gradient descent escapes them naturally (especially with stochastic noise). The loss landscape develops a connected valley structure where essentially all good solutions are part of one enormous basin.</p>
+
+    <p>Add overparameterization &mdash; more parameters than data points &mdash; and the landscape becomes even friendlier. The solution manifold broadens. The optimizer gains more directions to move in, more escape routes from any remaining difficult geometry. And the implicit regularization of SGD steers toward flat, robust minima that generalize well &mdash; not because anyone designed this property, but because it falls out of the interaction between stochastic dynamics and high-dimensional geometry.</p>
+
+    <p>The textbook picture of a smooth 2D surface with isolated valleys is not a simplification. It is the wrong intuition entirely. The right picture &mdash; to the extent that a picture is possible &mdash; is a vast, high-dimensional space with an enormous connected valley at the bottom, very few true local minima, and a sea of saddle points that the optimizer navigates through rather than getting trapped in. The reason gradient descent works on neural networks is not that it is a powerful optimization algorithm. It is a remarkably simple one. But the landscape it operates on is far kinder than anyone expected &mdash; not by accident, not by design, but by the geometry of high-dimensional spaces.</p>
+
+    <p>We drew the wrong picture and asked the wrong question. The question was never &ldquo;how do we avoid local minima?&rdquo; It was &ldquo;why are there so few of them?&rdquo; The answer is twenty thousand coin flips, all coming up heads. In high dimensions, that never happens.</p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- FOOTNOTES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="footnotes">
+      <div class="footnotes-title">Notes</div>
+      <div class="footnote" id="fn-1">
+        <span class="fn-num">[1]</span>
+        <span>This observation has been replicated across architectures and datasets. Larger models consistently find flatter minima with better generalization, a pattern that contradicts classical statistical learning theory. See Neyshabur et al. (2019), &ldquo;The Role of Over-Parametrization in Generalization of Neural Networks.&rdquo;</span>
+      </div>
+      <div class="footnote" id="fn-2">
+        <span class="fn-num">[2]</span>
+        <span>Bray, A.J. & Dean, D.S. (2007). &ldquo;Statistics of Critical Points of Gaussian Fields on Large-Dimensional Spaces.&rdquo; <em>Physical Review Letters</em>. This result from statistical physics established that for Gaussian random functions in high dimensions, the fraction of critical points that are local minima decreases exponentially with dimensionality. The connection to neural network loss surfaces was made rigorous by Choromanska et al. (2015).</span>
+      </div>
+      <div class="footnote" id="fn-3">
+        <span class="fn-num">[3]</span>
+        <span>Dauphin, Y. et al. (2014). &ldquo;Identifying and Attacking the Saddle Point Problem in High-Dimensional Non-Convex Optimization.&rdquo; <em>NeurIPS</em>. This paper shifted the community&rsquo;s understanding from &ldquo;local minima are the problem&rdquo; to &ldquo;saddle points are the problem&rdquo; &mdash; and showed that second-order methods can help but are often unnecessary since SGD escapes naturally.</span>
+      </div>
+      <div class="footnote" id="fn-4">
+        <span class="fn-num">[4]</span>
+        <span>Jin, C. et al. (2017). &ldquo;How to Escape Saddle Points Efficiently.&rdquo; <em>ICML</em>. Proved that perturbed gradient descent (gradient descent with occasional random perturbations) escapes all strict saddle points in polynomial time. SGD&rsquo;s mini-batch noise provides these perturbations naturally.</span>
+      </div>
+      <div class="footnote" id="fn-5">
+        <span class="fn-num">[5]</span>
+        <span>Belkin, M. et al. (2019). &ldquo;Reconciling Modern Machine Learning Practice and the Classical Bias-Variance Trade-off.&rdquo; <em>PNAS</em>. Documented the double descent curve where test performance improves again beyond the interpolation threshold, challenging the classical view that overfitting is the inevitable cost of overparameterization.</span>
+      </div>
+      <div class="footnote" id="fn-6">
+        <span class="fn-num">[6]</span>
+        <span>Gunasekar, S. et al. (2018). &ldquo;Characterizing Implicit Bias in Terms of Optimization Geometry.&rdquo; <em>ICML</em>. For linear models, gradient descent converges to the minimum-norm solution. For neural networks, the implicit bias is more complex but consistently favors simpler parameter configurations &mdash; a form of Occam&rsquo;s razor emerging from optimization dynamics.</span>
+      </div>
+      <div class="footnote" id="fn-7">
+        <span class="fn-num">[7]</span>
+        <span>Hochreiter, S. & Schmidhuber, J. (1997). &ldquo;Flat Minima.&rdquo; <em>Neural Computation</em>. Argued that flat minima correspond to networks with low Kolmogorov complexity &mdash; simpler descriptions &mdash; and should therefore generalize better under a minimum description length framework.</span>
+      </div>
+      <div class="footnote" id="fn-8">
+        <span class="fn-num">[8]</span>
+        <span>Keskar, N.S. et al. (2017). &ldquo;On Large-Batch Training for Deep Learning: Generalization Gap and Sharp Minima.&rdquo; <em>ICLR</em>. Large-batch gradient descent converges to sharp minima with high test error; small-batch SGD converges to flat minima with low test error. The noise in SGD acts as an implicit regularizer that favors wide basins.</span>
+      </div>
+      <div class="footnote" id="fn-9">
+        <span class="fn-num">[9]</span>
+        <span>Draxler, F. et al. (2018). &ldquo;Essentially No Barriers in Neural Network Energy Landscape.&rdquo; <em>ICML</em>. Found that independently trained networks can be connected by low-loss paths, establishing mode connectivity. Garipov et al. (2018) extended this to practical ensemble methods via &ldquo;fast geometric ensembling&rdquo; along these connecting paths.</span>
+      </div>
+      <div class="footnote" id="fn-10">
+        <span class="fn-num">[10]</span>
+        <span>Li, H. et al. (2018). &ldquo;Visualizing the Loss Landscape of Neural Nets.&rdquo; <em>NeurIPS</em>. The filter-normalization technique revealed that skip connections dramatically smooth the loss landscape. The chaotic surface of VGG-like networks versus the smooth basins of ResNets became one of the most reproduced figures in deep learning.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="../index.html">&larr; Distilled</a>
+    <span>Distilled</span>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); return ac; }
+
+function tone(freq, type = 'sine', dur = 0.12, vol = 0.06) {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function chime(freqs, spacing = 70) {
+  freqs.forEach((f, i) => setTimeout(() => tone(f, 'sine', 0.25, 0.05), i * spacing));
+}
+
+function playOK()     { chime([523, 659, 784, 1047]); }
+function playFail()   { tone(220, 'sawtooth', 0.3, 0.06); }
+function playClick()  { tone(440, 'triangle', 0.08, 0.04); }
+function playStep()   { tone(392, 'sine', 0.08, 0.04); }
+function playReveal() { chime([392, 494, 587, 740], 90); }
+
+// ═══════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const h = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (scrollY / h * 100) + '%';
+});
+
+// ═══════════════════════════════════════
+// QUIZ HANDLER
+// ═══════════════════════════════════════
+function handleQuiz(btn, correct, feedbackId, goodMsg, badMsg) {
+  const parent = btn.parentElement;
+  if (parent.dataset.done) return;
+  parent.dataset.done = '1';
+  parent.querySelectorAll('.quiz-opt').forEach(o => o.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  const fb = document.getElementById(feedbackId);
+  fb.innerHTML = correct ? goodMsg : badMsg;
+  fb.className = 'quiz-feedback show ' + (correct ? 'good' : 'bad');
+  correct ? playOK() : playFail();
+}
+
+// ═══════════════════════════════════════
+// DEMO 1: 2D Loss Surface Explorer
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('surface-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 380;
+  let lr = 0.012;
+  let balls = [];
+  let animId = null;
+
+  // Loss surface: sum of Gaussians (inverted) creating multiple minima
+  function loss(x, y) {
+    return 2.0
+      - 1.8 * Math.exp(-((x-0.3)**2 + (y-0.7)**2) / 0.03)
+      - 1.2 * Math.exp(-((x-0.7)**2 + (y-0.3)**2) / 0.04)
+      - 0.9 * Math.exp(-((x-0.2)**2 + (y-0.25)**2) / 0.05)
+      - 0.6 * Math.exp(-((x-0.8)**2 + (y-0.8)**2) / 0.06)
+      - 0.5 * Math.exp(-((x-0.5)**2 + (y-0.5)**2) / 0.08);
+  }
+
+  function grad(x, y) {
+    const eps = 0.0005;
+    const dldx = (loss(x + eps, y) - loss(x - eps, y)) / (2 * eps);
+    const dldy = (loss(x, y + eps) - loss(x, y - eps)) / (2 * eps);
+    return [dldx, dldy];
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    // Draw loss surface as heatmap
+    const res = 3;
+    for (let px = 0; px < W; px += res) {
+      for (let py = 0; py < H_PX; py += res) {
+        const x = px / W;
+        const y = py / H_PX;
+        const l = loss(x, y);
+        const t = Math.max(0, Math.min(1, (l - 0.0) / 2.0));
+        const r = Math.round(240 - t * 100);
+        const g = Math.round(245 - t * 120);
+        const b = Math.round(250 - t * 60);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(px, py, res, res);
+      }
+    }
+
+    // Contour lines
+    const levels = [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7];
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 0.8;
+    for (const level of levels) {
+      for (let px = 0; px < W - res; px += res) {
+        for (let py = 0; py < H_PX - res; py += res) {
+          const x1 = px / W, y1 = py / H_PX;
+          const x2 = (px + res) / W, y2 = (py + res) / H_PX;
+          const v00 = loss(x1, y1), v10 = loss(x2, y1);
+          const v01 = loss(x1, y2), v11 = loss(x2, y2);
+          if ((v00 < level) !== (v10 < level) || (v00 < level) !== (v01 < level)) {
+            ctx.beginPath();
+            ctx.arc(px + res/2, py + res/2, 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Draw ball trajectories and current positions
+    const colors = ['#c4622d', '#2a5db0', '#1a7a4a', '#6b3fa0', '#8b5e0a', '#a0290a'];
+    balls.forEach((ball, bi) => {
+      const col = colors[bi % colors.length];
+      // Trail
+      if (ball.trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(ball.trail[0][0] * W, ball.trail[0][1] * H_PX);
+        for (let i = 1; i < ball.trail.length; i++) {
+          ctx.lineTo(ball.trail[i][0] * W, ball.trail[i][1] * H_PX);
+        }
+        ctx.strokeStyle = col + '66';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      // Current position
+      const cx = ball.x * W, cy = ball.y * H_PX;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    // Labels
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'left';
+    ctx.fillText('Click to drop balls', 8, 16);
+  }
+
+  function animate() {
+    let anyMoving = false;
+    balls.forEach(ball => {
+      if (ball.settled) return;
+      const [gx, gy] = grad(ball.x, ball.y);
+      const gnorm = Math.sqrt(gx*gx + gy*gy);
+      if (gnorm < 0.01) {
+        ball.settled = true;
+        return;
+      }
+      anyMoving = true;
+      ball.x -= lr * gx;
+      ball.y -= lr * gy;
+      ball.x = Math.max(0.01, Math.min(0.99, ball.x));
+      ball.y = Math.max(0.01, Math.min(0.99, ball.y));
+      ball.trail.push([ball.x, ball.y]);
+      ball.steps++;
+    });
+    draw();
+    if (anyMoving) {
+      animId = requestAnimationFrame(animate);
+    } else {
+      animId = null;
+      const settled = balls.filter(b => b.settled);
+      if (settled.length > 0) {
+        const last = settled[settled.length - 1];
+        document.getElementById('surface-readout').textContent =
+          `Ball settled at (${last.x.toFixed(2)}, ${last.y.toFixed(2)}), loss = ${loss(last.x, last.y).toFixed(3)} after ${last.steps} steps.`;
+      }
+    }
+  }
+
+  c.addEventListener('click', function(e) {
+    const rect = c.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    balls.push({ x, y, trail: [[x, y]], settled: false, steps: 0 });
+    playClick();
+    document.getElementById('surface-readout').textContent =
+      `Dropped ball at (${x.toFixed(2)}, ${y.toFixed(2)}), loss = ${loss(x, y).toFixed(3)}. Running gradient descent...`;
+    if (!animId) animId = requestAnimationFrame(animate);
+  });
+
+  c.addEventListener('touchstart', function(e) {
+    const rect = c.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = (touch.clientX - rect.left) / rect.width;
+    const y = (touch.clientY - rect.top) / rect.height;
+    balls.push({ x, y, trail: [[x, y]], settled: false, steps: 0 });
+    playClick();
+    if (!animId) animId = requestAnimationFrame(animate);
+  }, { passive: true });
+
+  window.onSurfaceLR = function(v) {
+    lr = parseFloat(v);
+    document.getElementById('surface-lr-val').textContent = v;
+    tone(150 + lr * 8000, 'triangle', 0.08, 0.04);
+  };
+
+  window.clearSurfaceBalls = function() {
+    balls = [];
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    draw();
+    playClick();
+    document.getElementById('surface-readout').textContent = 'Click the surface to drop a gradient descent ball.';
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 2: Dimension vs Critical Point Type
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('dim-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 300;
+  let currentDim = 2;
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 50, r: 20, t: 30, b: 50 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+
+    // Background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(pad.l, pad.t, gw, gh);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (let t = 0; t <= 1; t += 0.25) {
+      const y = pad.t + gh * (1 - t);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + gw, y); ctx.stroke();
+      ctx.fillStyle = '#a0998e'; ctx.font = "9px 'DM Mono'"; ctx.textAlign = 'right';
+      ctx.fillText((t * 100).toFixed(0) + '%', pad.l - 6, y + 3);
+    }
+
+    // Draw stacked area: saddle points (blue), minima (green), maxima (muted)
+    const maxDim = 100;
+    const steps = Math.min(maxDim, 200);
+
+    // Build data
+    const data = [];
+    for (let i = 0; i <= steps; i++) {
+      const d = 1 + Math.round((maxDim - 1) * i / steps);
+      // p(minimum) = 0.5^d, p(maximum) = 0.5^d, p(saddle) = 1 - 2*0.5^d
+      const pMin = Math.pow(0.5, d);
+      const pMax = Math.pow(0.5, d);
+      const pSaddle = 1 - pMin - pMax;
+      data.push({ d, pMin, pMax, pSaddle });
+    }
+
+    function px(d) { return pad.l + gw * (d - 1) / (maxDim - 1); }
+    function py(v) { return pad.t + gh * (1 - v); }
+
+    // Saddle area (blue)
+    ctx.beginPath();
+    ctx.moveTo(px(data[0].d), py(0));
+    data.forEach(pt => ctx.lineTo(px(pt.d), py(pt.pSaddle)));
+    ctx.lineTo(px(data[data.length-1].d), py(0));
+    ctx.closePath();
+    ctx.fillStyle = '#2a5db022';
+    ctx.fill();
+
+    // Fill saddle top to 1
+    ctx.beginPath();
+    ctx.moveTo(px(data[0].d), py(1));
+    data.forEach(pt => ctx.lineTo(px(pt.d), py(pt.pSaddle)));
+    data.slice().reverse().forEach(pt => ctx.lineTo(px(pt.d), py(1)));
+    ctx.closePath();
+    ctx.fillStyle = '#2a5db044';
+    ctx.fill();
+
+    // Saddle line
+    ctx.beginPath();
+    data.forEach((pt, i) => i === 0 ? ctx.moveTo(px(pt.d), py(pt.pSaddle)) : ctx.lineTo(px(pt.d), py(pt.pSaddle)));
+    ctx.strokeStyle = '#2a5db0';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Minima + maxima area (green/muted) - thin line at bottom
+    ctx.beginPath();
+    data.forEach((pt, i) => i === 0 ? ctx.moveTo(px(pt.d), py(pt.pMin)) : ctx.lineTo(px(pt.d), py(pt.pMin)));
+    ctx.strokeStyle = '#1a7a4a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Green fill for minima
+    ctx.beginPath();
+    ctx.moveTo(px(data[0].d), py(0));
+    data.forEach(pt => ctx.lineTo(px(pt.d), py(pt.pMin)));
+    ctx.lineTo(px(data[data.length-1].d), py(0));
+    ctx.closePath();
+    ctx.fillStyle = '#1a7a4a22';
+    ctx.fill();
+
+    // Current dimension marker
+    const currX = px(currentDim);
+    ctx.beginPath();
+    ctx.moveTo(currX, pad.t);
+    ctx.lineTo(currX, pad.t + gh);
+    ctx.strokeStyle = '#c4622d44';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dot on saddle curve
+    const pSaddleCurr = 1 - 2 * Math.pow(0.5, currentDim);
+    ctx.beginPath();
+    ctx.arc(currX, py(Math.max(0, pSaddleCurr)), 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a5db0';
+    ctx.shadowColor = '#2a5db0';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Dot on minima curve
+    const pMinCurr = Math.pow(0.5, currentDim);
+    ctx.beginPath();
+    ctx.arc(currX, py(pMinCurr), 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#1a7a4a';
+    ctx.shadowColor = '#1a7a4a';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Labels
+    ctx.font = "10px 'DM Sans'";
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#2a5db0';
+    ctx.fillText('Saddle points', pad.l + 8, pad.t + 20);
+    ctx.fillStyle = '#1a7a4a';
+    const minLabelY = Math.min(py(pMinCurr) - 10, pad.t + gh - 20);
+    ctx.fillText('Local minima', pad.l + 8, currentDim < 10 ? minLabelY : pad.t + gh - 8);
+
+    // X axis labels
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'center';
+    [1, 10, 20, 50, 100].forEach(d => {
+      if (d <= maxDim) ctx.fillText(d + 'D', px(d), pad.t + gh + 20);
+    });
+    ctx.fillText('dimensions', pad.l + gw / 2, pad.t + gh + 38);
+
+    // Current dimension label
+    ctx.fillStyle = '#c4622d';
+    ctx.font = "bold 10px 'DM Mono'";
+    ctx.fillText(currentDim + 'D', currX, pad.t - 8);
+  }
+
+  window.onDimSlider = function(v) {
+    currentDim = parseInt(v);
+    document.getElementById('dim-val').textContent = v;
+    document.getElementById('dim-n').textContent = v;
+
+    const pMin = Math.pow(0.5, currentDim);
+    const pMax = Math.pow(0.5, currentDim);
+    const pSaddle = Math.max(0, 1 - pMin - pMax);
+
+    if (currentDim <= 30) {
+      document.getElementById('dim-pmin').textContent = (pMin * 100).toFixed(currentDim > 15 ? 8 : 2) + '%';
+    } else {
+      const log10 = -currentDim * Math.log10(2);
+      document.getElementById('dim-pmin').textContent = '~10^' + log10.toFixed(0);
+    }
+    document.getElementById('dim-psaddle').textContent = (pSaddle * 100).toFixed(2) + '%';
+    document.getElementById('dim-pmax').textContent = document.getElementById('dim-pmin').textContent;
+
+    const ratio = pSaddle > 0 && pMin > 0 ? Math.round(pSaddle / pMin) : Infinity;
+    document.getElementById('dim-ratio').textContent = ratio < 1e12 ? ratio.toLocaleString() + ' : 1' : '~10^' + Math.round(Math.log10(ratio)) + ' : 1';
+
+    tone(150 + currentDim * 6, 'triangle', 0.08, 0.04);
+    draw();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 3: Saddle Point Anatomy
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('saddle-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 340;
+
+  let dragX = 0, dragY = 0;
+  let isDragging = false;
+
+  function saddleFn(x, y) { return x * x - y * y; }
+  function gradX(x, y) { return 2 * x; }
+  function gradY(x, y) { return -2 * y; }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 40, r: 20, t: 20, b: 40 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+    const range = 2;
+
+    function px(x) { return pad.l + gw * (x + range) / (2 * range); }
+    function py(y) { return pad.t + gh * (1 - (y + range) / (2 * range)); }
+
+    // Heatmap of saddle surface
+    const res = 4;
+    for (let i = 0; i < gw; i += res) {
+      for (let j = 0; j < gh; j += res) {
+        const x = (i / gw) * 2 * range - range;
+        const y = ((gh - j) / gh) * 2 * range - range;
+        const v = saddleFn(x, y);
+        const t = (v + range * range) / (2 * range * range);
+        const r = Math.round(180 + t * 60);
+        const g = Math.round(200 - Math.abs(t - 0.5) * 100);
+        const b = Math.round(240 - t * 60);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(pad.l + i, pad.t + j, res, res);
+      }
+    }
+
+    // Contour lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 0.8;
+    for (let level = -3; level <= 3; level += 0.5) {
+      if (level === 0) continue;
+      // x^2 - y^2 = level => hyperbolas (draw both branches)
+      for (let sign = -1; sign <= 1; sign += 2) {
+        ctx.beginPath();
+        let started = false;
+        for (let t = -range; t <= range; t += 0.02) {
+          let x, y;
+          if (level > 0) {
+            x = t;
+            const yy = t * t - level;
+            if (yy < 0) { started = false; continue; }
+            y = sign * Math.sqrt(yy);
+          } else {
+            y = t;
+            const xx = t * t + level;
+            if (xx < 0) { started = false; continue; }
+            x = sign * Math.sqrt(xx);
+          }
+          if (Math.abs(x) <= range && Math.abs(y) <= range) {
+            if (!started) { ctx.moveTo(px(x), py(y)); started = true; }
+            else ctx.lineTo(px(x), py(y));
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#e2dfd8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px(-range), py(0)); ctx.lineTo(px(range), py(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(0), py(-range)); ctx.lineTo(px(0), py(range)); ctx.stroke();
+
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "9px 'DM Mono'";
+    ctx.textAlign = 'center';
+    ctx.fillText('x (positive curvature)', pad.l + gw / 2, pad.t + gh + 28);
+    ctx.save();
+    ctx.translate(pad.l - 24, pad.t + gh / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('y (negative curvature)', 0, 0);
+    ctx.restore();
+
+    // Origin marker (saddle point)
+    ctx.beginPath();
+    ctx.arc(px(0), py(0), 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#7a7870';
+    ctx.fill();
+    ctx.fillStyle = '#7a7870';
+    ctx.font = "9px 'DM Sans'";
+    ctx.textAlign = 'left';
+    ctx.fillText('saddle', px(0) + 8, py(0) - 8);
+
+    // Gradient arrows at drag point
+    const gx = gradX(dragX, dragY);
+    const gy = gradY(dragX, dragY);
+    const scale = 15;
+    const dpx = px(dragX), dpy = py(dragY);
+
+    // Negative gradient arrow (descent direction)
+    const ngx = -gx, ngy = -gy;
+    const nmag = Math.sqrt(ngx*ngx + ngy*ngy);
+    if (nmag > 0.1) {
+      const ax = ngx / nmag * scale * Math.min(nmag, 3);
+      const ay = -ngy / nmag * scale * Math.min(nmag, 3); // flip y for screen coords
+      ctx.beginPath();
+      ctx.moveTo(dpx, dpy);
+      ctx.lineTo(dpx + ax, dpy + ay);
+      ctx.strokeStyle = '#1a7a4a';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      // Arrowhead
+      const ang = Math.atan2(ay, ax);
+      ctx.beginPath();
+      ctx.moveTo(dpx + ax, dpy + ay);
+      ctx.lineTo(dpx + ax - 8 * Math.cos(ang - 0.4), dpy + ay - 8 * Math.sin(ang - 0.4));
+      ctx.lineTo(dpx + ax - 8 * Math.cos(ang + 0.4), dpy + ay - 8 * Math.sin(ang + 0.4));
+      ctx.closePath();
+      ctx.fillStyle = '#1a7a4a';
+      ctx.fill();
+    }
+
+    // Drag point
+    ctx.beginPath();
+    ctx.arc(dpx, dpy, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Info
+    const val = saddleFn(dragX, dragY);
+    document.getElementById('saddle-info').innerHTML =
+      `Position: (${dragX.toFixed(2)}, ${dragY.toFixed(2)}) | f = ${val.toFixed(2)} | ` +
+      `Eigenvalues: &lambda;<sub>1</sub> = +2.0 (valley), &lambda;<sub>2</sub> = &minus;2.0 (ridge) &mdash; ` +
+      (Math.abs(dragX) < 0.1 && Math.abs(dragY) < 0.1 ? 'At the saddle point: gradient &approx; 0 but NOT a minimum' :
+        'Green arrow = negative gradient (descent direction)');
+  }
+
+  function getCoords(e) {
+    const rect = c.getBoundingClientRect();
+    const W = c.offsetWidth;
+    const pad = { l: 40, r: 20, t: 20, b: 40 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+    const range = 2;
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const x = ((cx - pad.l) / gw) * 2 * range - range;
+    const y = (1 - (cy - pad.t) / gh) * 2 * range - range;
+    return [Math.max(-range, Math.min(range, x)), Math.max(-range, Math.min(range, y))];
+  }
+
+  c.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    [dragX, dragY] = getCoords(e);
+    draw();
+  });
+  c.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    [dragX, dragY] = getCoords(e);
+    draw();
+  });
+  c.addEventListener('mouseup', () => { isDragging = false; });
+  c.addEventListener('mouseleave', () => { isDragging = false; });
+
+  c.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    [dragX, dragY] = getCoords(e.touches[0]);
+    draw();
+  }, { passive: true });
+  c.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    [dragX, dragY] = getCoords(e.touches[0]);
+    draw();
+  }, { passive: true });
+  c.addEventListener('touchend', () => { isDragging = false; });
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 4: Sharp vs Flat Minima
+// ═══════════════════════════════════════
+(function() {
+  const cSharp = document.getElementById('sharp-canvas');
+  const cFlat = document.getElementById('flat-canvas');
+  const ctxS = cSharp.getContext('2d');
+  const ctxF = cFlat.getContext('2d');
+  const H_PX = 200;
+  let perturbation = 0;
+
+  function sharpLoss(x, off) { return 12 * (x - 0.5 - off) ** 2; }
+  function flatLoss(x, off) { return 0.8 * (x - 0.5 - off) ** 2; }
+
+  function resizeSharp() {
+    cSharp.width = cSharp.offsetWidth * devicePixelRatio;
+    cSharp.height = H_PX * devicePixelRatio;
+    ctxS.scale(devicePixelRatio, devicePixelRatio);
+  }
+  function resizeFlat() {
+    cFlat.width = cFlat.offsetWidth * devicePixelRatio;
+    cFlat.height = H_PX * devicePixelRatio;
+    ctxF.scale(devicePixelRatio, devicePixelRatio);
+  }
+
+  function drawOne(c2d, ctx2d, lossFn, label) {
+    const W = c2d.offsetWidth;
+    ctx2d.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 8, r: 8, t: 20, b: 30 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+
+    // Background
+    ctx2d.fillStyle = 'white';
+    ctx2d.fillRect(pad.l, pad.t, gw, gh);
+
+    // Training curve (grey dashed)
+    ctx2d.beginPath();
+    ctx2d.setLineDash([4, 3]);
+    for (let i = 0; i <= 200; i++) {
+      const x = i / 200;
+      const v = lossFn(x, 0);
+      const px = pad.l + x * gw;
+      const py = pad.t + gh * Math.min(1, v / 3);
+      i === 0 ? ctx2d.moveTo(px, py) : ctx2d.lineTo(px, py);
+    }
+    ctx2d.strokeStyle = '#ccc';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.stroke();
+    ctx2d.setLineDash([]);
+
+    // Test curve (shifted, colored)
+    ctx2d.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const x = i / 200;
+      const v = lossFn(x, perturbation * 0.15);
+      const px = pad.l + x * gw;
+      const py = pad.t + gh * Math.min(1, v / 3);
+      i === 0 ? ctx2d.moveTo(px, py) : ctx2d.lineTo(px, py);
+    }
+    ctx2d.strokeStyle = '#c4622d';
+    ctx2d.lineWidth = 2;
+    ctx2d.stroke();
+
+    // Dot at the minimum of training curve (x=0.5), show test loss at that point
+    const trainMinX = 0.5;
+    const testLossAtTrainMin = lossFn(trainMinX, perturbation * 0.15);
+    const dotPx = pad.l + trainMinX * gw;
+    const dotPy = pad.t + gh * Math.min(1, testLossAtTrainMin / 3);
+
+    ctx2d.beginPath();
+    ctx2d.arc(dotPx, dotPy, 5, 0, Math.PI * 2);
+    ctx2d.fillStyle = '#c4622d';
+    ctx2d.shadowColor = '#c4622d';
+    ctx2d.shadowBlur = 6;
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+
+    // Loss value
+    ctx2d.fillStyle = '#c4622d';
+    ctx2d.font = "bold 10px 'DM Mono'";
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('loss = ' + testLossAtTrainMin.toFixed(2), dotPx, dotPy - 12);
+
+    // Legend
+    ctx2d.font = "9px 'DM Sans'";
+    ctx2d.fillStyle = '#ccc';
+    ctx2d.textAlign = 'left';
+    ctx2d.fillText('train', pad.l + 4, pad.t + 14);
+    ctx2d.fillStyle = '#c4622d';
+    ctx2d.fillText('test', pad.l + 4 + 36, pad.t + 14);
+
+    return testLossAtTrainMin;
+  }
+
+  function drawBoth() {
+    const sharpLossVal = drawOne(cSharp, ctxS, sharpLoss, 'Sharp');
+    const flatLossVal = drawOne(cFlat, ctxF, flatLoss, 'Flat');
+    document.getElementById('sharp-flat-readout').textContent =
+      `Perturbation = ${perturbation.toFixed(2)}. Sharp test loss = ${sharpLossVal.toFixed(2)}, Flat test loss = ${flatLossVal.toFixed(2)}.`;
+  }
+
+  window.onPerturbSlider = function(v) {
+    perturbation = parseFloat(v);
+    document.getElementById('perturb-val').textContent = v;
+    tone(200 + perturbation * 400, 'triangle', 0.08, 0.04);
+    drawBoth();
+  };
+
+  function resizeAll() {
+    resizeSharp();
+    resizeFlat();
+    drawBoth();
+  }
+
+  resizeAll();
+  window.addEventListener('resize', resizeAll);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 5: Loss Landscape Slice Viewer
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('slice-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 340;
+  let sliceMode = 'curved';
+  let seed = 42;
+
+  function seededRandom() {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed - 1) / 2147483646;
+  }
+
+  // Generate a loss landscape with two basins connected by a valley
+  let basisA, basisB;
+  function generateBasis() {
+    seed = Math.floor(Math.random() * 100000);
+    basisA = [];
+    basisB = [];
+    for (let i = 0; i < 8; i++) {
+      basisA.push({ x: seededRandom(), y: seededRandom(), r: 0.08 + seededRandom() * 0.15, h: 0.5 + seededRandom() * 1.5 });
+      basisB.push({ x: seededRandom(), y: seededRandom(), r: 0.08 + seededRandom() * 0.12, h: 0.3 + seededRandom() * 1.0 });
+    }
+  }
+  generateBasis();
+
+  function landscape(x, y) {
+    // Base: a landscape with two low regions connected by a curved valley
+    let v = 1.5;
+    // Two main basins
+    v -= 1.4 * Math.exp(-((x - 0.2)**2 + (y - 0.2)**2) / 0.04);
+    v -= 1.3 * Math.exp(-((x - 0.8)**2 + (y - 0.8)**2) / 0.05);
+    // Curved valley connecting them
+    const cx = 0.5 + 0.1 * Math.sin(y * Math.PI * 2);
+    v -= 0.6 * Math.exp(-((x - cx)**2) / 0.03 - ((y - 0.5)**2) / 0.15);
+    // Ridge along straight line
+    const t = (x + y) / 2;
+    v += 0.8 * Math.exp(-((x - y)**2) / 0.01) * Math.exp(-((t - 0.5)**2) / 0.08);
+    // Random bumps
+    basisA.forEach(b => {
+      v += b.h * 0.15 * Math.exp(-((x - b.x)**2 + (y - b.y)**2) / (b.r * b.r));
+    });
+    return Math.max(0, v);
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 10, r: 10, t: 10, b: 10 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+
+    // Render landscape heatmap
+    const res = 4;
+    let maxL = 0, minL = 999;
+    for (let i = 0; i < gw; i += res) {
+      for (let j = 0; j < gh; j += res) {
+        const v = landscape(i / gw, j / gh);
+        maxL = Math.max(maxL, v);
+        minL = Math.min(minL, v);
+      }
+    }
+
+    for (let i = 0; i < gw; i += res) {
+      for (let j = 0; j < gh; j += res) {
+        const v = landscape(i / gw, j / gh);
+        const t = (v - minL) / (maxL - minL + 0.001);
+        // Color: low = dark blue, medium = light, high = warm
+        const r = Math.round(60 + t * 180);
+        const g = Math.round(90 + (1 - t) * 130 + t * 50);
+        const b = Math.round(170 + (1 - t) * 70 - t * 80);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(pad.l + i, pad.t + j, res, res);
+      }
+    }
+
+    // Contour lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 0.6;
+    const levels = 12;
+    for (let l = 0; l < levels; l++) {
+      const level = minL + (maxL - minL) * l / levels;
+      for (let i = 0; i < gw - res; i += res) {
+        for (let j = 0; j < gh - res; j += res) {
+          const v00 = landscape(i / gw, j / gh);
+          const v10 = landscape((i + res) / gw, j / gh);
+          const v01 = landscape(i / gw, (j + res) / gh);
+          if ((v00 < level) !== (v10 < level) || (v00 < level) !== (v01 < level)) {
+            ctx.beginPath();
+            ctx.arc(pad.l + i + res/2, pad.t + j + res/2, 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Solution markers
+    const s1 = { x: 0.2, y: 0.2 };
+    const s2 = { x: 0.8, y: 0.8 };
+
+    // Draw path
+    ctx.lineWidth = 2.5;
+    if (sliceMode === 'straight') {
+      ctx.beginPath();
+      ctx.moveTo(pad.l + s1.x * gw, pad.t + s1.y * gh);
+      ctx.lineTo(pad.l + s2.x * gw, pad.t + s2.y * gh);
+      ctx.strokeStyle = '#c4622d';
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Compute max loss along straight path
+      let maxStraight = 0;
+      for (let t = 0; t <= 1; t += 0.01) {
+        const x = s1.x + t * (s2.x - s1.x);
+        const y = s1.y + t * (s2.y - s1.y);
+        maxStraight = Math.max(maxStraight, landscape(x, y));
+      }
+      document.getElementById('slice-readout').textContent =
+        `Straight path: max loss = ${maxStraight.toFixed(2)} \u2014 crosses the high-loss ridge.`;
+    } else {
+      // Curved path through the valley
+      ctx.beginPath();
+      let maxCurved = 0;
+      for (let t = 0; t <= 1; t += 0.005) {
+        // Bezier through a point in the valley
+        const mx = 0.35, my = 0.65;
+        const x = (1-t)*(1-t)*s1.x + 2*(1-t)*t*mx + t*t*s2.x;
+        const y = (1-t)*(1-t)*s1.y + 2*(1-t)*t*my + t*t*s2.y;
+        const px = pad.l + x * gw;
+        const py = pad.t + y * gh;
+        t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        maxCurved = Math.max(maxCurved, landscape(x, y));
+      }
+      ctx.strokeStyle = '#1a7a4a';
+      ctx.stroke();
+      document.getElementById('slice-readout').textContent =
+        `Curved path: max loss = ${maxCurved.toFixed(2)} \u2014 stays in the connected valley.`;
+    }
+
+    // Solution dots
+    [s1, s2].forEach((s, i) => {
+      const sx = pad.l + s.x * gw;
+      const sy = pad.t + s.y * gh;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 4;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#1c1c1a';
+      ctx.font = "bold 9px 'DM Mono'";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i === 0 ? '\u03b8\u2081' : '\u03b8\u2082', sx, sy);
+      ctx.textBaseline = 'alphabetic';
+    });
+  }
+
+  window.setSliceMode = function(mode) {
+    sliceMode = mode;
+    document.getElementById('slice-btn-curved').className = mode === 'curved' ? 'btn active' : 'btn';
+    document.getElementById('slice-btn-straight').className = mode === 'straight' ? 'btn active' : 'btn';
+    playClick();
+    draw();
+  };
+
+  window.newSliceDirections = function() {
+    generateBasis();
+    playClick();
+    draw();
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════
+// DEMO 6: Learning Rate Explorer
+// ═══════════════════════════════════════
+(function() {
+  const c = document.getElementById('lr-canvas');
+  const ctx = c.getContext('2d');
+  const H_PX = 280;
+  let lr = 0.02;
+  let ballX = 0.05;
+  let trail = [];
+  let running = false;
+  let animId = null;
+
+  // Loss landscape with a sharp minimum (narrow), a saddle plateau, and a flat minimum (wide)
+  function lrLoss(x) {
+    return 0.5
+      + 1.2 * Math.exp(-((x - 0.25)**2) / 0.002)  // sharp bump
+      - 0.6 * Math.exp(-((x - 0.25)**2) / 0.001)   // sharp minimum inside the bump
+      - 0.35 * Math.exp(-((x - 0.7)**2) / 0.03)     // wide flat minimum
+      + 0.3 * Math.exp(-((x - 0.5)**2) / 0.005)     // barrier
+      - 0.15 * Math.exp(-((x - 0.45)**2) / 0.01)    // small dip (saddle-like)
+      + 0.08 * Math.sin(x * 30) * Math.exp(-((x - 0.5)**2) / 0.1);  // texture
+  }
+
+  function lrGrad(x) {
+    const eps = 0.0002;
+    return (lrLoss(x + eps) - lrLoss(x - eps)) / (2 * eps);
+  }
+
+  function resize() {
+    c.width = c.offsetWidth * devicePixelRatio;
+    c.height = H_PX * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    draw();
+  }
+
+  function draw() {
+    const W = c.offsetWidth;
+    ctx.clearRect(0, 0, W, H_PX);
+
+    const pad = { l: 30, r: 20, t: 20, b: 30 };
+    const gw = W - pad.l - pad.r;
+    const gh = H_PX - pad.t - pad.b;
+
+    // Compute loss range
+    let minL = Infinity, maxL = -Infinity;
+    for (let i = 0; i <= 400; i++) {
+      const x = i / 400;
+      const v = lrLoss(x);
+      minL = Math.min(minL, v);
+      maxL = Math.max(maxL, v);
+    }
+    const lRange = maxL - minL || 1;
+
+    function px(x) { return pad.l + x * gw; }
+    function py(v) { return pad.t + gh * (1 - (v - minL) / lRange * 0.9); }
+
+    // Background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(pad.l, pad.t, gw, gh);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 0.8;
+    for (let t = 0; t <= 1; t += 0.25) {
+      const y = pad.t + gh * t;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + gw, y); ctx.stroke();
+    }
+
+    // Loss curve
+    ctx.beginPath();
+    for (let i = 0; i <= 400; i++) {
+      const x = i / 400;
+      const v = lrLoss(x);
+      i === 0 ? ctx.moveTo(px(x), py(v)) : ctx.lineTo(px(x), py(v));
+    }
+    ctx.strokeStyle = '#2a5db0';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(px(0), py(lrLoss(0)));
+    for (let i = 0; i <= 400; i++) {
+      const x = i / 400;
+      ctx.lineTo(px(x), py(lrLoss(x)));
+    }
+    ctx.lineTo(px(1), pad.t + gh);
+    ctx.lineTo(px(0), pad.t + gh);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(42,93,176,0.06)';
+    ctx.fill();
+
+    // Trail
+    if (trail.length > 1) {
+      for (let i = 1; i < trail.length; i++) {
+        const alpha = 0.15 + 0.85 * (i / trail.length);
+        ctx.beginPath();
+        ctx.arc(px(trail[i]), py(lrLoss(trail[i])), 3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(196,98,45,${alpha})`;
+        ctx.fill();
+      }
+    }
+
+    // Ball
+    const bpx = px(ballX), bpy = py(lrLoss(ballX));
+    ctx.beginPath();
+    ctx.arc(bpx, bpy, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#c4622d';
+    ctx.shadowColor = '#c4622d';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Labels
+    ctx.fillStyle = '#a0998e';
+    ctx.font = "8px 'DM Sans'";
+    ctx.textAlign = 'center';
+    ctx.fillText('sharp min', px(0.25), pad.t + gh + 16);
+    ctx.fillText('flat min', px(0.7), pad.t + gh + 16);
+  }
+
+  window.onLrSlider = function(v) {
+    lr = parseFloat(v);
+    document.getElementById('lr-val').textContent = parseFloat(v).toFixed(3);
+    tone(150 + lr * 3000, 'triangle', 0.08, 0.04);
+  };
+
+  window.runLrDemo = function() {
+    if (running) return;
+    running = true;
+    document.querySelector('[onclick="runLrDemo()"]').disabled = true;
+    ballX = 0.05;
+    trail = [ballX];
+    let step = 0;
+    const maxSteps = 500;
+
+    function tick() {
+      const g = lrGrad(ballX);
+      ballX -= lr * g;
+      ballX = Math.max(0.01, Math.min(0.99, ballX));
+      trail.push(ballX);
+      step++;
+
+      const f = 300 + lrLoss(ballX) * 400;
+      tone(f, 'sine', 0.03, 0.012);
+
+      draw();
+
+      const recentVar = trail.length > 10 ?
+        trail.slice(-10).reduce((s, x) => s + (x - trail[trail.length-1])**2, 0) / 10 : 1;
+
+      document.getElementById('lr-readout').textContent =
+        `Step ${step} | x = ${ballX.toFixed(3)} | loss = ${lrLoss(ballX).toFixed(4)} | gradient = ${g.toFixed(4)}`;
+
+      if (step < maxSteps && (recentVar > 0.000001 || step < 30)) {
+        animId = requestAnimationFrame(tick);
+      } else {
+        running = false;
+        animId = null;
+        document.querySelector('[onclick="runLrDemo()"]').disabled = false;
+        const loc = ballX < 0.4 ? 'sharp minimum' : 'flat minimum';
+        document.getElementById('lr-readout').textContent +=
+          ` \u2014 Settled near the ${loc}.`;
+        playOK();
+      }
+    }
+    tick();
+  };
+
+  window.resetLrDemo = function() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    running = false;
+    document.querySelector('[onclick="runLrDemo()"]').disabled = false;
+    ballX = 0.05;
+    trail = [];
+    draw();
+    playClick();
+    document.getElementById('lr-readout').textContent = 'Click Run to start gradient descent from the left side of the landscape.';
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+</script>
+</body>
+</html>
